@@ -1,0 +1,29 @@
+.admin-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: var(--header-height) 1fr;
+  grid-template-areas:
+    'sidebar header'
+    'sidebar main';
+  min-height: 100vh;
+}
+
+.admin-layout__sidebar {
+  grid-area: sidebar;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-layout__header {
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.admin-layout__main {
+  grid-area: main;
+  padding: 24px;
+  overflow-y: auto;
+}
