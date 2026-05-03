@@ -12,6 +12,7 @@ import { ForgotPasswordStep1 } from "./pages/ForgotPasswordStep1";
 import { ForgotPasswordStep2 } from "./pages/ForgotPasswordStep2";
 import { CreateNewPasswordPage } from "./pages/CreateNewPasswordPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DashboardGiangVienPage } from "./pages/DashboardGiangVienPage";
 
 const router = createBrowserRouter([
 	{
@@ -48,6 +49,10 @@ const router = createBrowserRouter([
 					{
 						path: "dashboard",
 						element: <DashboardPage />,
+					},
+					{
+						path: "dashboard/giang-vien",
+						element: <DashboardGiangVienPage />,
 					},
 				],
 			},

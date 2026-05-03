@@ -61,3 +61,44 @@ export interface AuthState {
 	resetEmail: string | null;
 	resetOtpVerified: boolean;
 }
+
+// Instructor Dashboard Types
+export interface InstructorProfile {
+	initials: string;
+	name: string;
+	role: string;
+}
+
+export interface InstructorStatCard {
+	title: string;
+	value: string;
+	icon: string;
+	iconBg: string;
+}
+
+export interface WeeklyTeachingData {
+	day: string;
+	gioDay: number;
+	hocVien: number;
+}
+
+export interface TopicScore {
+	topic: string;
+	score: number;
+}
+
+export interface ClassProgress {
+	id: string;
+	name: string;
+	completed: number;
+	total: number;
+	percent: number;
+}
+
+export interface TodaySession {
+	id: string;
+	timeRange: string;
+	className: string;
+	room: string;
+	studentCount: number;
+}
