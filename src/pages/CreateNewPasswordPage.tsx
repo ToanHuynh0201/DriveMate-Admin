@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import {
-  validatePassword,
-  validatePasswordMatch,
-} from '../utils/authUtils';
+import { validatePassword, validatePasswordMatch } from '../utils/authUtils';
+import { PasswordInput } from '../components/ui/PasswordInput';
+import { ErrorMessage } from '../components/ui/ErrorMessage';
+import { Button } from '../components/ui/Button';
 import './ForgotPasswordPage.css';
 
 export function CreateNewPasswordPage() {
@@ -14,23 +14,18 @@ export function CreateNewPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const passwordValidation = validatePassword(newPassword);
   const passwordsMatch = validatePasswordMatch(newPassword, confirmPassword);
 
   useEffect(() => {
-    // If OTP not verified, redirect back
     if (!resetOtpVerified) {
       navigate('/forgot-password/step1', { replace: true });
     }
   }, [resetOtpVerified, navigate]);
 
   useEffect(() => {
-    return () => {
-      clearError();
-    };
+    return () => { clearError(); };
   }, [clearError]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,28 +36,22 @@ export function CreateNewPasswordPage() {
       setError('Vui lòng nhập mật khẩu mới');
       return;
     }
-
     if (!passwordValidation.isValid) {
       setError('Mật khẩu phải có ít nhất 8 ký tự');
       return;
     }
-
     if (!confirmPassword.trim()) {
       setError('Vui lòng xác nhận mật khẩu');
       return;
     }
-
     if (!passwordsMatch) {
       setError('Mật khẩu không khớp');
       return;
     }
 
     setLoading(true);
-
-    // Simulate password reset
     setTimeout(() => {
       resetPassword(newPassword);
-      // Redirect to login after success
       navigate('/login', { replace: true });
       setLoading(false);
     }, 1000);
@@ -78,26 +67,12 @@ export function CreateNewPasswordPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="forgot-password-form">
-          <div className="form-group">
-            <label>Mật khẩu mới</label>
-            <div className="password-input-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="toggle-password"
-                disabled={loading}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-          </div>
+          <PasswordInput
+            label="Mật khẩu mới"
+            value={newPassword}
+            onChange={setNewPassword}
+            disabled={loading}
+          />
 
           {newPassword && (
             <div className="password-validation">
@@ -113,49 +88,34 @@ export function CreateNewPasswordPage() {
             </div>
           )}
 
-          <div className="form-group">
-            <label>Xác nhận mật khẩu</label>
-            <div className="password-input-wrapper">
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="toggle-password"
-                disabled={loading}
-              >
-                {showConfirmPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-            {confirmPassword && !passwordsMatch && (
-              <small className="help-text error-text">
-                ✗ Mật khẩu không khớp
-              </small>
-            )}
-            {confirmPassword && passwordsMatch && (
-              <small className="help-text success-text">
-                ✓ Mật khẩu khớp
-              </small>
-            )}
-          </div>
+          <PasswordInput
+            label="Xác nhận mật khẩu"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            disabled={loading}
+            helpText={
+              confirmPassword
+                ? passwordsMatch
+                  ? '✓ Mật khẩu khớp'
+                  : '✗ Mật khẩu không khớp'
+                : undefined
+            }
+            helpTextVariant={
+              confirmPassword ? (passwordsMatch ? 'success' : 'error') : 'default'
+            }
+          />
 
-          {(error || storeError) && (
-            <div className="error-message">{error || storeError}</div>
-          )}
+          <ErrorMessage message={error || storeError} />
 
-          <button
+          <Button
             type="submit"
-            className="submit-button"
+            fullWidth
+            loading={loading}
+            loadingLabel="Đang đặt lại mật khẩu..."
             disabled={loading || !passwordValidation.isValid || !passwordsMatch}
           >
-            {loading ? 'Đang đặt lại mật khẩu...' : 'Đặt Lại Mật Khẩu'}
-          </button>
-
+            Đặt Lại Mật Khẩu
+          </Button>
         </form>
       </div>
     </div>

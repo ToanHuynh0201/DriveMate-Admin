@@ -4,6 +4,21 @@ export interface NavItem {
 	icon: string;
 }
 
+// UI Component Types
+export type StatCardVariant = 'light' | 'dark';
+export type ChangeType = 'positive' | 'negative';
+export type ButtonVariant = 'primary' | 'secondary';
+
+export interface AdminStatCard {
+	title: string;
+	value: string;
+	icon: string;
+	iconBg: string;
+	change: string;
+	changeLabel: string;
+	changeType: ChangeType;
+}
+
 // Dashboard Types
 export interface MonthlyTrend {
 	month: string;
