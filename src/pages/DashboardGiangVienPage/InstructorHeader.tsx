@@ -9,9 +9,9 @@ export function InstructorHeader({ instructor }: InstructorHeaderProps) {
   return (
     <div className="gv-dashboard__header">
       <div className="gv-dashboard__header-text">
-        <h1 className="gv-dashboard__title">Dashboard Giảng Viên</h1>
+        <h1 className="gv-dashboard__title">Instructor Dashboard</h1>
         <p className="gv-dashboard__subtitle">
-          Theo dõi tiến độ giảng dạy và kết quả học viên
+          Track teaching progress and student results
         </p>
       </div>
       <div className="gv-profile-card">

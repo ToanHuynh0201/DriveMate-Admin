@@ -22,12 +22,8 @@ export function ForgotPasswordStep1() {
     e.preventDefault();
     setError('');
 
-    if (!email.trim()) {
-      setError('Vui lòng nhập email');
-      return;
-    }
-    if (!validateEmail(email)) {
-      setError('Email không hợp lệ');
+    if (!email.trim() || !validateEmail(email)) {
+      setError('Please enter a valid email address.');
       return;
     }
 
@@ -44,8 +40,8 @@ export function ForgotPasswordStep1() {
       <div className="forgot-password-card">
         <div className="forgot-password-header">
           <div className="logo-icon">🎓</div>
-          <h2>Quên Mật Khẩu</h2>
-          <p>Nhập email của bạn để nhận link đặt lại mật khẩu</p>
+          <h2>Forgot Password</h2>
+          <p>Enter your email to receive a one-time password (OTP)</p>
         </div>
 
         <form onSubmit={handleSubmit} className="forgot-password-form">
@@ -61,12 +57,12 @@ export function ForgotPasswordStep1() {
 
           <ErrorMessage message={error} />
 
-          <Button type="submit" fullWidth loading={loading} loadingLabel="Đang gửi...">
-            Gửi OTP
+          <Button type="submit" fullWidth loading={loading} loadingLabel="Sending...">
+            Send OTP
           </Button>
 
           <Link to="/login" className="btn btn--secondary">
-            ← Quay lại Đăng nhập
+            ← Back to Login
           </Link>
         </form>
       </div>

@@ -28,16 +28,8 @@ export function LoginPage() {
     e.preventDefault();
     setLocalError('');
 
-    if (!email.trim()) {
-      setLocalError('Vui lòng nhập email');
-      return;
-    }
-    if (!validateEmail(email)) {
-      setLocalError('Email không hợp lệ');
-      return;
-    }
-    if (!password.trim()) {
-      setLocalError('Vui lòng nhập mật khẩu');
+    if (!email.trim() || !validateEmail(email) || !password.trim()) {
+      setLocalError('Please enter email and password.');
       return;
     }
 
@@ -50,7 +42,7 @@ export function LoginPage() {
         <div className="login-header">
           <div className="logo-icon">🎓</div>
           <h1>Driving School</h1>
-          <p>Hệ Thống Quản Lý Luyện Thi</p>
+          <p>Driving Test Management System</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -64,7 +56,7 @@ export function LoginPage() {
             />
           </FormGroup>
 
-          <FormGroup label="Mật khẩu">
+          <FormGroup label="Password">
             <input
               type="password"
               value={password}
@@ -79,15 +71,15 @@ export function LoginPage() {
           <div className="form-footer">
             <label className="remember-me">
               <input type="checkbox" disabled={loading} />
-              <span>Ghi nhớ đăng nhập</span>
+              <span>Remember me</span>
             </label>
             <Link to="/forgot-password/step1" className="forgot-password-link">
-              Quên mật khẩu?
+              Forgot password?
             </Link>
           </div>
 
-          <Button type="submit" fullWidth loading={loading} loadingLabel="Đang đăng nhập...">
-            Đăng Nhập
+          <Button type="submit" fullWidth loading={loading} loadingLabel="Logging in...">
+            Login
           </Button>
         </form>
 

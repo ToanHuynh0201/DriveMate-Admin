@@ -27,7 +27,7 @@ export function ChartsSection({ monthlyTrend, licenseDistribution, passRates, pi
   return (
     <>
       <div className="charts-row">
-        <ChartCard title="Xu Hướng Theo Tháng">
+        <ChartCard title="Monthly Trend">
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={monthlyTrend} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -35,14 +35,14 @@ export function ChartsSection({ monthlyTrend, licenseDistribution, passRates, pi
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="hocVien" name="Học viên" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="baiThi" name="Bài thi" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="dat" name="Đạt" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="hocVien" name="Students" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="baiThi" name="Exams" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="dat" name="Passed" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Phân Bố Theo Hạng Bằng">
+        <ChartCard title="Distribution by License Category">
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
@@ -65,14 +65,14 @@ export function ChartsSection({ monthlyTrend, licenseDistribution, passRates, pi
         </ChartCard>
       </div>
 
-      <ChartCard title="Tỷ Lệ Đỗ Theo Hạng Bằng">
+      <ChartCard title="Pass Rate by License Category">
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={passRates} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
             <XAxis dataKey="hang" tick={{ fontSize: 12 }} />
             <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} tickFormatter={(v) => `${v}`} />
             <Tooltip formatter={(v) => `${v}%`} />
-            <Bar dataKey="rate" name="Tỷ lệ đỗ" fill="#fdb913" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="rate" name="Pass rate" fill="#fdb913" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>

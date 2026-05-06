@@ -8,14 +8,14 @@ interface ClassProgressSectionProps {
 
 export function ClassProgressSection({ classes }: ClassProgressSectionProps) {
   return (
-    <SectionCard title="Tiến Độ Các Lớp Học" variant="dark">
+    <SectionCard title="Class Progress" variant="dark">
       <div className="gv-progress-list">
         {classes.map((cls) => (
           <div key={cls.id} className="gv-progress-item">
             <div className="gv-progress-item__header">
               <span className="gv-progress-item__name">{cls.name}</span>
               <span className="gv-progress-item__count">
-                {cls.completed}/{cls.total} học viên hoàn thành
+                {cls.completed}/{cls.total} students completed
               </span>
             </div>
             <ProgressBar percent={cls.percent} />

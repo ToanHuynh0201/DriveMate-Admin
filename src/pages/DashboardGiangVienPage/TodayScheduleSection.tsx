@@ -8,7 +8,7 @@ interface TodayScheduleSectionProps {
 
 export function TodayScheduleSection({ sessions }: TodayScheduleSectionProps) {
   return (
-    <SectionCard title="Lịch Dạy Hôm Nay" variant="dark">
+    <SectionCard title="Today's Schedule" variant="dark">
       <div className="gv-schedule-list">
         {sessions.map((session) => (
           <div key={session.id} className="gv-schedule-item">
@@ -16,11 +16,11 @@ export function TodayScheduleSection({ sessions }: TodayScheduleSectionProps) {
             <div className="gv-schedule-item__info">
               <span className="gv-schedule-item__class">{session.className}</span>
               <span className="gv-schedule-item__meta">
-                {session.room} • {session.studentCount} học viên
+                {session.room} • {session.studentCount} students
               </span>
             </div>
             <Button variant="primary" style={{ padding: '7px 16px', fontSize: 13, marginTop: 0 }}>
-              Điểm danh
+              Attendance
             </Button>
           </div>
         ))}

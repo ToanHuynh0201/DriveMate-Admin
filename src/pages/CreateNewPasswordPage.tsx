@@ -33,19 +33,19 @@ export function CreateNewPasswordPage() {
     setError('');
 
     if (!newPassword.trim()) {
-      setError('Vui lòng nhập mật khẩu mới');
+      setError('Please enter a new password.');
       return;
     }
     if (!passwordValidation.isValid) {
-      setError('Mật khẩu phải có ít nhất 8 ký tự');
+      setError('Password does not meet complexity requirements.');
       return;
     }
     if (!confirmPassword.trim()) {
-      setError('Vui lòng xác nhận mật khẩu');
+      setError('Please confirm your password.');
       return;
     }
     if (!passwordsMatch) {
-      setError('Mật khẩu không khớp');
+      setError('Passwords do not match.');
       return;
     }
 
@@ -62,13 +62,13 @@ export function CreateNewPasswordPage() {
       <div className="forgot-password-card large">
         <div className="forgot-password-header">
           <div className="logo-icon">🎓</div>
-          <h2>Tạo Mật Khẩu Mới</h2>
-          <p>Nhập mật khẩu mới cho tài khoản của bạn</p>
+          <h2>Create New Password</h2>
+          <p>Enter a new password for your account.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="forgot-password-form">
           <PasswordInput
-            label="Mật khẩu mới"
+            label="New password"
             value={newPassword}
             onChange={setNewPassword}
             disabled={loading}
@@ -77,27 +77,27 @@ export function CreateNewPasswordPage() {
           {newPassword && (
             <div className="password-validation">
               <div className={`validation-item ${passwordValidation.minLength ? 'valid' : 'invalid'}`}>
-                ✓ Ít nhất 8 ký tự
+                ✓ At least 8 characters
               </div>
               <div className={`validation-item ${(passwordValidation.hasUpperCase && passwordValidation.hasLowerCase) ? 'valid' : 'invalid'}`}>
-                ✓ Bao gồm chữ hoa và chữ thường
+                ✓ Includes uppercase and lowercase letters
               </div>
               <div className={`validation-item ${passwordValidation.hasNumber ? 'valid' : 'invalid'}`}>
-                ✓ Có ít nhất 1 số
+                ✓ Contains at least 1 number
               </div>
             </div>
           )}
 
           <PasswordInput
-            label="Xác nhận mật khẩu"
+            label="Confirm password"
             value={confirmPassword}
             onChange={setConfirmPassword}
             disabled={loading}
             helpText={
               confirmPassword
                 ? passwordsMatch
-                  ? '✓ Mật khẩu khớp'
-                  : '✗ Mật khẩu không khớp'
+                  ? '✓ Passwords match'
+                  : '✗ Passwords do not match'
                 : undefined
             }
             helpTextVariant={
@@ -111,10 +111,10 @@ export function CreateNewPasswordPage() {
             type="submit"
             fullWidth
             loading={loading}
-            loadingLabel="Đang đặt lại mật khẩu..."
+            loadingLabel="Resetting password..."
             disabled={loading || !passwordValidation.isValid || !passwordsMatch}
           >
-            Đặt Lại Mật Khẩu
+            Reset Password
           </Button>
         </form>
       </div>

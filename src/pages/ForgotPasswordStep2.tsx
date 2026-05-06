@@ -26,7 +26,7 @@ export function ForgotPasswordStep2() {
     setError('');
 
     if (!validateOTP(otp)) {
-      setError('Vui lòng nhập 6 chữ số OTP');
+      setError('Please enter the 6-digit OTP.');
       return;
     }
 
@@ -36,7 +36,7 @@ export function ForgotPasswordStep2() {
       if (isValid) {
         navigate('/forgot-password/step3');
       } else {
-        setError('OTP không đúng. Vui lòng thử lại.');
+        setError('Invalid OTP. Please try again.');
       }
       setLoading(false);
     }, 1000);
@@ -47,8 +47,8 @@ export function ForgotPasswordStep2() {
       <div className="forgot-password-card">
         <div className="forgot-password-header">
           <div className="logo-icon">🎓</div>
-          <h2>Quên Mật Khẩu</h2>
-          <p>Nếu email đã đăng ký, OTP đã được gửi đến email của bạn. Vui lòng check inbox</p>
+          <h2>Forgot Password</h2>
+          <p>If your email is registered, an OTP has been sent. Please check your inbox.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="forgot-password-form">
@@ -67,14 +67,14 @@ export function ForgotPasswordStep2() {
             type="submit"
             fullWidth
             loading={loading}
-            loadingLabel="Đang xác nhận..."
+            loadingLabel="Verifying..."
             disabled={loading || otp.length !== 6}
           >
-            Gửi OTP
+            Verify OTP
           </Button>
 
           <Link to="/forgot-password/step1" className="btn btn--secondary">
-            ← Quay lại Đăng nhập
+            ← Back
           </Link>
         </form>
       </div>
