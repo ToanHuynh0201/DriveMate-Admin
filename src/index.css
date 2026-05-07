@@ -1,6 +1,6 @@
 :root {
   /* Layout */
-  --sidebar-width: 240px;
+  --sidebar-width: 260px;
   --header-height: 60px;
 
   /* Colors */
@@ -13,11 +13,11 @@
   --color-text-muted: #64748b;
 
   /* Sidebar */
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #94a3b8;
+  --sidebar-bg: #1a1a1a;
+  --sidebar-text: #9ca3af;
   --sidebar-text-active: #ffffff;
-  --sidebar-item-hover-bg: rgba(255, 255, 255, 0.06);
-  --sidebar-item-active-bg: #2563eb;
+  --sidebar-item-hover-bg: rgba(255, 255, 255, 0.07);
+  --sidebar-item-active-bg: #fdb913;
 
   /* Typography */
   --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;

@@ -45,4 +45,6 @@ export const ROUTES = {
   FORGOT_PASSWORD_STEP3: "/forgot-password/step3",
   DASHBOARD: "/dashboard",
   DASHBOARD_INSTRUCTOR: "/dashboard/giang-vien",
+  USERS: "/users",
+  ADD_USER: "/users/new",
 } as const;

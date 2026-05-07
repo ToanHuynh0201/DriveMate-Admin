@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react';
+
 export * from "./api.types";
 
 export interface NavItem {
 	label: string;
 	path: string;
-	icon: string;
+	icon: ReactNode;
 }
 
 // UI Component Types

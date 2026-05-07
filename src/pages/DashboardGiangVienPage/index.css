@@ -2,7 +2,7 @@
   margin: -24px;
   padding: 24px;
   background: #0f172a;
-  min-height: calc(100vh - var(--header-height));
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 20px;
