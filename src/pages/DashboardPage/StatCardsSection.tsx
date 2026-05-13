@@ -11,7 +11,7 @@ export function StatCardsSection({ cards }: StatCardsSectionProps) {
       {cards.map((card) => (
         <StatCard
           key={card.title}
-          variant="light"
+          variant="dark"
           title={card.title}
           value={card.value}
           icon={card.icon}

@@ -8,7 +8,7 @@ interface ActivitySectionProps {
 
 export function ActivitySection({ activities }: ActivitySectionProps) {
   return (
-    <SectionCard title="Recent Activity">
+    <SectionCard title="Hoạt Động Gần Đây" variant="dark">
       <div className="activity-list">
         {activities.map((item) => (
           <div key={item.id} className="activity-item">

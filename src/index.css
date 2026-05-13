@@ -6,11 +6,11 @@
   /* Colors */
   --color-primary: #2563eb;
   --color-primary-hover: #1d4ed8;
-  --color-bg: #f8fafc;
-  --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --color-text: #1e293b;
-  --color-text-muted: #64748b;
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
 
   /* Sidebar */
   --sidebar-bg: #1a1a1a;

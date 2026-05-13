@@ -23,26 +23,35 @@ interface ChartsSectionProps {
   pieColors: string[];
 }
 
+const darkTooltipStyle = {
+  backgroundColor: '#1e293b',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 6,
+  color: '#f8fafc',
+};
+
+const darkAxisTick = { fontSize: 12, fill: '#94a3b8' };
+
 export function ChartsSection({ monthlyTrend, licenseDistribution, passRates, pieColors }: ChartsSectionProps) {
   return (
     <>
       <div className="charts-row">
-        <ChartCard title="Monthly Trend">
+        <ChartCard title="Xu Hướng Theo Tháng" variant="dark">
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={monthlyTrend} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="month" tick={darkAxisTick} />
+              <YAxis tick={darkAxisTick} />
+              <Tooltip contentStyle={darkTooltipStyle} />
               <Legend />
-              <Line type="monotone" dataKey="hocVien" name="Students" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="baiThi" name="Exams" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="dat" name="Passed" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="hocVien" name="Học viên" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="baiThi" name="Bài thi" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="dat" name="Đạt" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Distribution by License Category">
+        <ChartCard title="Phân Bổ Theo Hạng Bằng" variant="dark">
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
@@ -59,20 +68,20 @@ export function ChartsSection({ monthlyTrend, licenseDistribution, passRates, pi
                   <Cell key={index} fill={pieColors[index % pieColors.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => `${v}%`} />
+              <Tooltip formatter={(v) => `${v}%`} contentStyle={darkTooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>
 
-      <ChartCard title="Pass Rate by License Category">
+      <ChartCard title="Tỷ Lệ Đỗ Theo Hạng Bằng" variant="dark">
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={passRates} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-            <XAxis dataKey="hang" tick={{ fontSize: 12 }} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} tickFormatter={(v) => `${v}`} />
-            <Tooltip formatter={(v) => `${v}%`} />
-            <Bar dataKey="rate" name="Pass rate" fill="#fdb913" radius={[4, 4, 0, 0]} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+            <XAxis dataKey="hang" tick={darkAxisTick} />
+            <YAxis domain={[0, 100]} tick={darkAxisTick} tickFormatter={(v) => `${v}`} />
+            <Tooltip formatter={(v) => `${v}%`} contentStyle={darkTooltipStyle} />
+            <Bar dataKey="rate" name="Tỷ lệ đỗ" fill="#fdb913" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>

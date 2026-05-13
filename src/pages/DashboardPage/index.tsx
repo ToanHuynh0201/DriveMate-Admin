@@ -8,8 +8,8 @@ export function DashboardPage() {
   return (
     <div className="dashboard">
       <div className="dashboard__header">
-        <h1>Overview Dashboard</h1>
-        <p>Welcome back! Here is your system overview.</p>
+        <h1>Dashboard Tổng Quan</h1>
+        <p>Chào mừng trở lại! Đây là tổng quan hệ thống của bạn.</p>
       </div>
 
       <StatCardsSection cards={STAT_CARDS} />
