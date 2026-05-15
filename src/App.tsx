@@ -23,6 +23,8 @@ import CourseDetailPage from "./pages/CourseDetailPage";
 import AddCoursePage from "./pages/AddCoursePage";
 import QuestionManagementPage from "./pages/QuestionManagementPage";
 import AddQuestionPage from "./pages/AddQuestionPage";
+import ExamConfigManagementPage from "./pages/ExamConfigManagementPage";
+import AddExamConfigPage from "./pages/AddExamConfigPage";
 
 const router = createBrowserRouter([
 	{
@@ -111,6 +113,18 @@ const router = createBrowserRouter([
 					{
 						path: "questions/:id/edit",
 						element: <AddQuestionPage />,
+					},
+					{
+						path: "exam-config",
+						element: <ExamConfigManagementPage />,
+					},
+					{
+						path: "exam-config/new",
+						element: <AddExamConfigPage />,
+					},
+					{
+						path: "exam-config/:configId/edit",
+						element: <AddExamConfigPage />,
 					},
 				],
 			},
