@@ -1,4 +1,4 @@
-import type { LicenseClass } from "./user.types";
+import type { LicenseTier, UserProfile } from "./user-profile.types";
 
 export type StudentStatus = "studying" | "warning" | "completed" | "locked";
 export type StudentExamResult = "pass" | "fail";
@@ -18,71 +18,76 @@ export interface StudentExamHistory {
 	result: StudentExamResult;
 }
 
-export interface StudentDocumentStatus {
-	idFront: boolean;
-	idBack: boolean;
-	portrait: boolean;
-	healthCertificate: boolean;
-	extra: boolean;
-}
-
 export interface Student {
 	id: string;
-	code: string;
 	fullName: string;
-	initials: string;
-	avatarColor: string;
 	email: string;
-	phone: string;
-	dateOfBirth: string;
-	address: string;
-	licenseClass: LicenseClass;
-	status: StudentStatus;
-	progress: number;
-	examCount: number;
-	passedCount: number;
-	warningCount: number;
-	lastExamDate: string;
-	lastResult: StudentExamResult;
-	instructor: string;
-	joinDate: string;
-	note: string;
-	progressTrend: StudentProgressPoint[];
-	examHistory: StudentExamHistory[];
-	documents: StudentDocumentStatus;
+	phoneNumber: string | null;
+	dateOfBirth: string | null;
+	address: string | null;
+	avatarUrl: string | null;
+	isActive: boolean;
+	createdAt: string;
+	licenseTier: LicenseTier | null;
+	enrolledAt: string | null;
+	notes: string | null;
 }
 
 export interface StudentFilters {
 	search: string;
-	licenseClass: LicenseClass | "";
+	licenseTier: LicenseTier | "";
 	status: StudentStatus | "";
 }
 
-export interface StudentFormData {
-	fullName: string;
-	email: string;
-	phone: string;
-	dateOfBirth: string;
-	address: string;
-	enrollmentDate: string;
-	licenseClass: LicenseClass | "";
-	status: StudentStatus | "";
-	note: string;
+const AVATAR_PALETTE = [
+	"#f9c74f",
+	"#f9844a",
+	"#4cc9f0",
+	"#ff6b6b",
+	"#90be6d",
+	"#43aa8b",
+	"#f8961e",
+	"#577590",
+];
+
+export function studentFromProfile(profile: UserProfile): Student {
+	return {
+		id: profile.id,
+		fullName: profile.fullName,
+		email: profile.email,
+		phoneNumber: profile.phoneNumber,
+		dateOfBirth: profile.dateOfBirth,
+		address: profile.address,
+		avatarUrl: profile.avatarUrl,
+		isActive: profile.isActive,
+		createdAt: profile.createdAt,
+		licenseTier: profile.studentDetail?.licenseTier ?? null,
+		enrolledAt: profile.studentDetail?.enrolledAt ?? null,
+		notes: profile.studentDetail?.notes ?? null,
+	};
 }
 
-export interface StudentFormErrors {
-	fullName?: string;
-	email?: string;
-	phone?: string;
-	dateOfBirth?: string;
-	address?: string;
-	enrollmentDate?: string;
-	licenseClass?: string;
-	status?: string;
-	idFront?: string;
-	idBack?: string;
-	portrait?: string;
-	healthCertificate?: string;
+export function studentInitials(name: string): string {
+	return name
+		.split(" ")
+		.filter(Boolean)
+		.slice(-2)
+		.map((part) => part[0])
+		.join("")
+		.toUpperCase();
+}
+
+export function studentAvatarColor(id: string): string {
+	let hash = 0;
+	for (let i = 0; i < id.length; i++) {
+		hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+	}
+	return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
+
+export function studentStatus(student: Student): StudentStatus {
+	// Backend chỉ có isActive — chưa có dữ liệu exam để suy ra warning/completed.
+	return student.isActive ? "studying" : "locked";
 }
 
 export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
@@ -109,7 +114,7 @@ export const STUDENT_STATUS_OPTIONS: Array<{
 	{ value: "locked", label: "Đã khóa" },
 ];
 
-export const STUDENT_LICENSE_CLASSES: LicenseClass[] = [
+export const STUDENT_LICENSE_TIERS: LicenseTier[] = [
 	"A1",
 	"A2",
 	"B1",
@@ -120,7 +125,7 @@ export const STUDENT_LICENSE_CLASSES: LicenseClass[] = [
 	"F",
 ];
 
-export const STUDENT_RANK_OPTIONS: LicenseClass[] = [
+export const STUDENT_RANK_OPTIONS: LicenseTier[] = [
 	"A1",
 	"A2",
 	"B1",
@@ -135,17 +140,6 @@ export const STUDENT_ALERT_TEMPLATES = [
 	"Cần tăng cường ôn tập",
 	"Tùy chỉnh nội dung",
 ];
-
-export const STUDENT_DOCUMENT_LABELS: Record<
-	keyof StudentDocumentStatus,
-	string
-> = {
-	idFront: "CMND / CCCD mặt trước",
-	idBack: "CMND / CCCD mặt sau",
-	portrait: "Ảnh chân dung 3 x 4",
-	healthCertificate: "Giấy khám sức khỏe",
-	extra: "Tài liệu bổ sung",
-};
 
 export const STUDENT_ALERT_CHANNEL_LABELS: Record<StudentAlertChannel, string> =
 	{

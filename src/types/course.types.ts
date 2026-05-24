@@ -1,85 +1,130 @@
-export type LicenseClass = 'A1' | 'A2' | 'B1' | 'B2' | 'C' | 'D' | 'E' | 'F';
-export type CourseStatus = 'active' | 'draft' | 'inactive';
+export type LicenseCategory = 'A1' | 'A2' | 'B1' | 'B2' | 'C' | 'D' | 'E' | 'F';
+export type CourseStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 
-export interface Lesson {
+export interface CourseLesson {
+  id: string;
+  courseId: string;
+  title: string;
+  content: string | null;
+  order: number;
+  createdAt: string;
+}
+
+export interface CourseMaterial {
   id: string;
   title: string;
-  duration: number; // minutes
-  completions: number;
+  fileUrl: string | null;
+  mediaFileId: string | null;
+  type: string | null;
+  createdAt: string;
 }
 
-export interface Material {
+export interface CourseRequirement {
   id: string;
-  name: string;
-  size: string;
-  downloads: number;
-  type: 'pdf' | 'video' | 'doc';
-}
-
-export interface Exam {
-  id: string;
-  type: 'midterm' | 'final' | 'practice';
-  totalQuestions: number;
-  duration: number; // minutes
-  minScore: number;
-}
-
-export interface Course {
-  id: string;
-  name: string;
-  licenseClass: LicenseClass;
-  duration: string;
-  lessonCount: number;
-  studentCount: number;
-  tuitionFee: number;
-  status: CourseStatus;
-  description: string;
-  capacity: number;
-  minAge: number;
-  prerequisite: string;
+  minAge: number | null;
+  prerequisites: string | null;
   attendanceRate: number;
   minPassScore: number;
   requiredExams: number;
-  instructors: string[];
-  lessons: Lesson[];
-  materials: Material[];
-  exams: Exam[];
+}
+
+export interface CourseResponse {
+  id: string;
+  title: string;
+  description: string | null;
+  licenseCategory: LicenseCategory;
+  totalLessons: number;
+  duration: string | null;
+  tuitionFee: number;
+  capacity: number | null;
+  status: CourseStatus;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  lessons: CourseLesson[];
+  instructorIds: string[];
+  requirement: CourseRequirement | null;
+  materials: CourseMaterial[];
 }
 
 export interface CourseFilters {
   search: string;
-  licenseClass: string;
-  status: string;
+  licenseCategory: LicenseCategory | '';
+  status: CourseStatus | '';
+}
+
+export interface CreateCoursePayload {
+  title: string;
+  licenseCategory: LicenseCategory;
+  description?: string;
+  duration?: string;
+  tuitionFee?: number;
+  capacity?: number;
+  instructorIds?: string[];
+  requirement?: {
+    minAge?: number;
+    prerequisites?: string;
+    attendanceRate?: number;
+    minPassScore?: number;
+    requiredExams?: number;
+  };
+}
+
+export interface UpdateCoursePayload {
+  title?: string;
+  description?: string;
+  duration?: string;
+  tuitionFee?: number;
+  capacity?: number;
+  requirement?: {
+    minAge?: number;
+    prerequisites?: string;
+    attendanceRate?: number;
+    minPassScore?: number;
+    requiredExams?: number;
+  };
+}
+
+export interface AddLessonPayload {
+  title: string;
+  order: number;
+  content?: string;
+}
+
+export interface AddMaterialPayload {
+  title: string;
+  fileUrl?: string;
+  mediaFileId?: string;
+  type?: string;
 }
 
 export interface CourseFormData {
-  name: string;
-  licenseClass: string;
+  title: string;
+  licenseCategory: LicenseCategory | '';
+  description: string;
   duration: string;
   tuitionFee: number;
   capacity: number;
-  description: string;
-  status: string;
-  instructors: string[];
-  lessons: { title: string }[];
-  materials: { name: string; url: string }[];
-  minAge: number;
-  prerequisite: string;
-  attendanceRate: number;
-  minPassScore: number;
-  requiredExams: number;
+  instructorIds: string[];
+  requirement: {
+    minAge: number;
+    prerequisites: string;
+    attendanceRate: number;
+    minPassScore: number;
+    requiredExams: number;
+  };
 }
 
 export const COURSE_STATUS_LABELS: Record<CourseStatus, string> = {
-  active: 'Hoạt động',
-  draft: 'Bản nháp',
-  inactive: 'Ngừng hoạt động',
+  DRAFT: 'Bản nháp',
+  ACTIVE: 'Đang hoạt động',
+  ARCHIVED: 'Đã lưu trữ',
 };
 
-export const COURSE_LICENSE_CLASSES: LicenseClass[] = ['A1', 'A2', 'B1', 'B2', 'C', 'D', 'E', 'F'];
+export const COURSE_LICENSE_CATEGORIES: LicenseCategory[] = ['A1', 'A2', 'B1', 'B2', 'C', 'D', 'E', 'F'];
 
 export const COURSE_STATUS_OPTIONS: { value: CourseStatus; label: string }[] = [
-  { value: 'active', label: 'Hoạt động' },
-  { value: 'draft', label: 'Bản nháp' },
-  { value: 'inactive', label: 'Ngừng hoạt động' },
+  { value: 'DRAFT', label: 'Bản nháp' },
+  { value: 'ACTIVE', label: 'Đang hoạt động' },
+  { value: 'ARCHIVED', label: 'Đã lưu trữ' },
 ];

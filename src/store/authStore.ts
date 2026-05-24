@@ -16,12 +16,12 @@ import {
 
 interface AuthStore extends AuthState {
   isInitializing: boolean;
+  passwordResetEmailSent: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
-  verifyOTP: (otp: string) => boolean;
-  resetPassword: (newPassword: string) => void;
   clearError: () => void;
+  clearPasswordResetStatus: () => void;
   initializeAuth: () => Promise<void>;
 }
 
@@ -45,16 +45,14 @@ function extractRoleFromJwt(payload: Record<string, unknown>): UserRole {
   return "STUDENT";
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
+export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   token: null,
   isAuthenticated: false,
   loading: false,
   error: null,
   isInitializing: true,
-  isResettingPassword: false,
-  resetEmail: null,
-  resetOtpVerified: false,
+  passwordResetEmailSent: false,
 
   initializeAuth: async () => {
     set({ isInitializing: true });
@@ -97,7 +95,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   logout: async () => {
     const refreshToken = await getStorageItem<string>(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY);
     if (refreshToken) {
-      await authService.logout();
+      await authService.logout(refreshToken);
     }
     await removeAuthToken();
     await removeUserData();
@@ -108,9 +106,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       token: null,
       isAuthenticated: false,
       error: null,
-      isResettingPassword: false,
-      resetEmail: null,
-      resetOtpVerified: false,
+      passwordResetEmailSent: false,
     });
   },
 
@@ -120,7 +116,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
 
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, passwordResetEmailSent: false });
     const result = await authService.forgotPassword({ email });
 
     if (!result.success) {
@@ -128,40 +124,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
 
-    set({ loading: false, isResettingPassword: true, resetEmail: email, error: null });
-  },
-
-  verifyOTP: (otp: string): boolean => {
-    if (otp.length === 6 && /^\d+$/.test(otp)) {
-      set({ resetOtpVerified: true, error: null });
-      return true;
-    }
-    set({ error: "OTP không hợp lệ. Vui lòng nhập 6 chữ số" });
-    return false;
-  },
-
-  resetPassword: (newPassword: string) => {
-    const state = get();
-    if (!state.resetEmail || !state.resetOtpVerified) {
-      set({ error: "Không thể đặt lại mật khẩu. Vui lòng thử lại." });
-      return;
-    }
-    if (!newPassword || newPassword.length < 8) {
-      set({ error: "Mật khẩu phải có ít nhất 8 ký tự" });
-      return;
-    }
-    set({
-      isResettingPassword: false,
-      resetEmail: null,
-      resetOtpVerified: false,
-      error: null,
-      user: null,
-      token: null,
-      isAuthenticated: false,
-    });
+    set({ loading: false, passwordResetEmailSent: true, error: null });
   },
 
   clearError: () => {
     set({ error: null });
+  },
+
+  clearPasswordResetStatus: () => {
+    set({ passwordResetEmailSent: false, error: null });
   },
 }));

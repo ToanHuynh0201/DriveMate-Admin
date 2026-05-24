@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react';
+import type { UserRole } from "./identity.types";
 
 export * from "./api.types";
+export * from "./identity.types";
+export * from "./user-profile.types";
+export * from "./exam-template.types";
+export * from "./media.types";
 
 export interface NavItem {
 	label: string;
@@ -18,9 +23,9 @@ export interface AdminStatCard {
 	value: string;
 	icon: string;
 	iconBg: string;
-	change: string;
-	changeLabel: string;
-	changeType: ChangeType;
+	change?: string;
+	changeLabel?: string;
+	changeType?: ChangeType;
 }
 
 // Dashboard Types
@@ -52,8 +57,6 @@ export interface RecentActivity {
 }
 
 // Auth Types
-export type UserRole = "ADMIN" | "CENTER_MANAGER" | "INSTRUCTOR" | "STUDENT";
-
 export interface AuthUser {
 	id: string;
 	email: string;
@@ -65,22 +68,12 @@ export interface LoginCredentials {
 	password: string;
 }
 
-export interface ResetPasswordData {
-	email: string;
-	otp: string;
-	newPassword: string;
-	confirmPassword: string;
-}
-
 export interface AuthState {
 	user: AuthUser | null;
 	token: string | null;
 	isAuthenticated: boolean;
 	loading: boolean;
 	error: string | null;
-	isResettingPassword: boolean;
-	resetEmail: string | null;
-	resetOtpVerified: boolean;
 }
 
 // Instructor Dashboard Types

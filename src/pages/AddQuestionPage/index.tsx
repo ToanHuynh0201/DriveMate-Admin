@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { questionService, topicService } from '@/services';
+import { ImageUploader } from '@/components/common/ImageUploader';
+import type { MediaReference } from '@/types/media.types';
 import type { QuestionFormData, TopicResponse } from '../../types/question.types';
 import {
   DIFFICULTY_OPTIONS,
@@ -38,11 +40,10 @@ export default function AddQuestionPage() {
   const [version, setVersion] = useState<number>(1);
   const [topics, setTopics] = useState<TopicResponse[]>([]);
   const [errors, setErrors] = useState<Partial<Record<keyof QuestionFormData | 'options', string>>>({});
-  const [isDragging, setIsDragging] = useState(false);
+  const [image, setImage] = useState<MediaReference | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     topicService.list({ size: 100 }).then((res) => {
@@ -71,6 +72,9 @@ export default function AddQuestionPage() {
             .map((o) => ({ content: o.content, isCorrect: o.isCorrect, displayOrder: o.displayOrder })),
           explanation: q.explanation,
         });
+        if (q.mediaFileId) {
+          setImage({ mediaFileId: q.mediaFileId, publicUrl: q.imageUrl ?? "" });
+        }
       } else {
         setSubmitError(res.error);
       }
@@ -130,6 +134,8 @@ export default function AddQuestionPage() {
         isCorrect: o.isCorrect,
         displayOrder: o.displayOrder,
       })),
+      imageUrl: image?.publicUrl ?? null,
+      mediaFileId: image?.mediaFileId ?? null,
     };
 
     const result = isEdit && id
@@ -185,22 +191,11 @@ export default function AddQuestionPage() {
 
             <div className="add-q__form-group">
               <label>Hình ảnh minh họa</label>
-              <div
-                className={`add-q__upload-zone ${isDragging ? 'add-q__upload-zone--drag' : ''}`}
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setIsDragging(false); }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" hidden />
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="add-q__upload-icon">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <p>Kéo thả hoặc click để tải hình ảnh</p>
-                <span>PNG, JPG lên đến 5MB</span>
-              </div>
+              <ImageUploader
+                value={image}
+                onChange={setImage}
+                helpText="PNG, JPG, WebP — tối đa 10MB"
+              />
             </div>
           </div>
 

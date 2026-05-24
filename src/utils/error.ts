@@ -56,11 +56,11 @@ export const withErrorHandling = <TArgs extends unknown[], TData>(
     try {
       const response = await asyncFn(...args);
 
-      if (response.data?.success) {
+      if (!response.data || response.data?.success) {
         return {
           success: true,
-          data: response.data.data,
-          message: response.data.message ?? "",
+          data: (response.data?.data ?? null) as TData,
+          message: response.data?.message ?? "",
         };
       }
 

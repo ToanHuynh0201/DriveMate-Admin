@@ -73,7 +73,7 @@ export function LoginPage() {
               <input type="checkbox" disabled={loading} />
               <span>Remember me</span>
             </label>
-            <Link to="/forgot-password/step1" className="forgot-password-link">
+            <Link to="/forgot-password" className="forgot-password-link">
               Forgot password?
             </Link>
           </div>

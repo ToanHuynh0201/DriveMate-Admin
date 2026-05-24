@@ -40,11 +40,10 @@ export const ERROR_MESSAGES = {
 
 export const ROUTES = {
   LOGIN: "/login",
-  FORGOT_PASSWORD_STEP1: "/forgot-password/step1",
-  FORGOT_PASSWORD_STEP2: "/forgot-password/step2",
-  FORGOT_PASSWORD_STEP3: "/forgot-password/step3",
+  FORGOT_PASSWORD: "/forgot-password",
   DASHBOARD: "/dashboard",
   DASHBOARD_INSTRUCTOR: "/dashboard/giang-vien",
   USERS: "/users",
   ADD_USER: "/users/new",
+  AUDIT_LOGS: "/audit-logs",
 } as const;

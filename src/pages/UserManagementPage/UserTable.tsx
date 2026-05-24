@@ -1,35 +1,65 @@
-import type { User } from '../../types/user.types';
-import { ROLE_LABELS, STATUS_LABELS } from '../../types/user.types';
+import type { IdentityUser, UserRole } from "@/types/identity.types";
+import { ROLE_LABELS } from "@/types/identity.types";
 
 interface Props {
-  users: User[];
-  onToggleStatus: (id: string) => void;
-  onView: (id: string) => void;
-  onEdit: (id: string) => void;
+  users: IdentityUser[];
+  togglingId: string | null;
+  onToggleStatus: (user: IdentityUser) => void;
+  onEdit: (user: IdentityUser) => void;
+  onChangeRole: (user: IdentityUser) => void;
+  onDelete: (user: IdentityUser) => void;
 }
 
-function getInitials(user: User) {
-  return (user.firstName.trim().slice(-1) + user.lastName.trim().slice(0, 1)).toUpperCase();
+const ROLE_BADGE_CLASS: Record<UserRole, string> = {
+  ADMIN: "badge badge--admin",
+  CENTER_MANAGER: "badge badge--manager",
+  INSTRUCTOR: "badge badge--instructor",
+  STUDENT: "badge badge--student",
+};
+
+const AVATAR_PALETTE = [
+  "#F5A623",
+  "#4A90E2",
+  "#7ED321",
+  "#9B59B6",
+  "#E74C3C",
+  "#16A085",
+];
+
+function getInitials(fullName: string) {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function RoleBadge({ role }: { role: User['role'] }) {
-  const classes: Record<User['role'], string> = {
-    admin: 'badge badge--admin',
-    center_manager: 'badge badge--manager',
-    instructor: 'badge badge--instructor',
-  };
-  return <span className={classes[role]}>{ROLE_LABELS[role]}</span>;
+function getAvatarColor(userId: string) {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
-function StatusBadge({ status }: { status: User['status'] }) {
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("vi-VN");
+}
+
+function RoleBadge({ role }: { role: UserRole }) {
+  return <span className={ROLE_BADGE_CLASS[role]}>{ROLE_LABELS[role]}</span>;
+}
+
+function StatusBadge({ isActive }: { isActive: boolean }) {
   return (
-    <span className={`badge ${status === 'active' ? 'badge--active' : 'badge--inactive'}`}>
-      {STATUS_LABELS[status]}
+    <span className={`badge ${isActive ? "badge--active" : "badge--inactive"}`}>
+      {isActive ? "Hoạt động" : "Tạm dừng"}
     </span>
   );
 }
 
-export default function UserTable({ users, onToggleStatus, onView, onEdit }: Props) {
+export default function UserTable({ users, togglingId, onToggleStatus, onEdit, onChangeRole, onDelete }: Props) {
   if (users.length === 0) {
     return (
       <div className="user-table__empty">
@@ -47,60 +77,68 @@ export default function UserTable({ users, onToggleStatus, onView, onEdit }: Pro
             <th>Email</th>
             <th>Vai Trò</th>
             <th>Trạng Thái</th>
-            <th>Hạng Bằng</th>
             <th>Ngày Tạo</th>
             <th>Thao Tác</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr key={user.id}>
+            <tr key={user.userId}>
               <td>
                 <div className="user-table__name-cell">
                   <div
                     className="user-table__avatar"
-                    style={{ background: user.avatarColor }}
-                  >
-                    {getInitials(user)}
+                    style={{ background: getAvatarColor(user.userId) }}>
+                    {getInitials(user.fullName)}
                   </div>
-                  <span className="user-table__fullname">
-                    {user.firstName} {user.lastName}
-                  </span>
+                  <span className="user-table__fullname">{user.fullName}</span>
                 </div>
               </td>
               <td className="user-table__email">{user.email}</td>
-              <td><RoleBadge role={user.role} /></td>
-              <td><StatusBadge status={user.status} /></td>
               <td>
-                <div className="user-table__licenses">
-                  {user.licenseClasses.map((cls) => (
-                    <span key={cls} className="badge badge--license">{cls}</span>
-                  ))}
-                </div>
+                <RoleBadge role={user.role} />
               </td>
-              <td className="user-table__date">{user.createdAt}</td>
+              <td>
+                <StatusBadge isActive={user.isActive} />
+              </td>
+              <td className="user-table__date">{formatDate(user.createdAt)}</td>
               <td>
                 <div className="user-table__actions">
                   <button
-                    className="action-btn action-btn--view"
-                    title="Xem chi tiết"
-                    onClick={() => onView(user.id)}
-                  >
-                    👁
+                    className={`action-btn ${
+                      user.isActive
+                        ? "action-btn--deactivate"
+                        : "action-btn--activate"
+                    }`}
+                    title={user.isActive ? "Khóa đăng nhập" : "Mở khóa"}
+                    disabled={togglingId === user.userId}
+                    onClick={() => onToggleStatus(user)}>
+                    {togglingId === user.userId
+                      ? "⏳"
+                      : user.isActive
+                        ? "⏸"
+                        : "▶"}
                   </button>
                   <button
                     className="action-btn action-btn--edit"
-                    title="Chỉnh sửa"
-                    onClick={() => onEdit(user.id)}
-                  >
+                    title="Sửa thông tin"
+                    disabled={togglingId === user.userId || user.isDeleted}
+                    onClick={() => onEdit(user)}>
                     ✏️
                   </button>
                   <button
-                    className={`action-btn ${user.status === 'active' ? 'action-btn--deactivate' : 'action-btn--activate'}`}
-                    title={user.status === 'active' ? 'Tạm dừng' : 'Kích hoạt'}
-                    onClick={() => onToggleStatus(user.id)}
-                  >
-                    {user.status === 'active' ? '⏸' : '▶'}
+                    className="action-btn action-btn--role"
+                    title="Đổi vai trò"
+                    disabled={togglingId === user.userId || user.isDeleted}
+                    onClick={() => onChangeRole(user)}>
+                    🔑
+                  </button>
+                  <button
+                    className="action-btn action-btn--delete"
+                    title="Xóa tài khoản"
+                    disabled={togglingId === user.userId || user.isDeleted}
+                    onClick={() => onDelete(user)}>
+                    🗑️
                   </button>
                 </div>
               </td>

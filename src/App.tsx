@@ -9,8 +9,6 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { ForgotPasswordStep1 } from "./pages/ForgotPasswordStep1";
-import { ForgotPasswordStep2 } from "./pages/ForgotPasswordStep2";
-import { CreateNewPasswordPage } from "./pages/CreateNewPasswordPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DashboardGiangVienPage } from "./pages/DashboardGiangVienPage";
 import UserManagementPage from "./pages/UserManagementPage";
@@ -25,6 +23,7 @@ import QuestionManagementPage from "./pages/QuestionManagementPage";
 import AddQuestionPage from "./pages/AddQuestionPage";
 import ExamConfigManagementPage from "./pages/ExamConfigManagementPage";
 import AddExamConfigPage from "./pages/AddExamConfigPage";
+import AuditLogPage from "./pages/AuditLogPage";
 
 const router = createBrowserRouter([
 	{
@@ -41,16 +40,8 @@ const router = createBrowserRouter([
 		element: <LoginPage />,
 	},
 	{
-		path: "/forgot-password/step1",
+		path: "/forgot-password",
 		element: <ForgotPasswordStep1 />,
-	},
-	{
-		path: "/forgot-password/step2",
-		element: <ForgotPasswordStep2 />,
-	},
-	{
-		path: "/forgot-password/step3",
-		element: <CreateNewPasswordPage />,
 	},
 	{
 		element: <ProtectedRoute />,
@@ -125,6 +116,10 @@ const router = createBrowserRouter([
 					{
 						path: "exam-config/:configId/edit",
 						element: <AddExamConfigPage />,
+					},
+					{
+						path: "audit-logs",
+						element: <AuditLogPage />,
 					},
 				],
 			},

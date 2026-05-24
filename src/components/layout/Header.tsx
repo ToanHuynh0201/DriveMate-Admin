@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom';
+import { NotificationBell } from '@/components/common/NotificationBell';
 import './Header.css';
 
 const ROUTE_LABELS: Record<string, string> = {
@@ -19,6 +20,7 @@ export function Header() {
     <header className="header">
       <span className="header__title">{title}</span>
       <div className="header__user">
+        <NotificationBell />
         <span>Admin</span>
         <div className="header__avatar">A</div>
       </div>

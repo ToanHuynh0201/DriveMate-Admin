@@ -1,20 +1,24 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ProgressBar } from "../../components/ui/ProgressBar";
-import { MOCK_STUDENTS } from "../../data/studentData";
+import { userService } from "@/services";
+import type { LicenseTier } from "@/types/user-profile.types";
+import {
+	STUDENT_LICENSE_TIERS,
+	STUDENT_STATUS_LABELS,
+	STUDENT_STATUS_OPTIONS,
+	studentAvatarColor,
+	studentFromProfile,
+	studentInitials,
+	studentStatus,
+} from "../../types/student.types";
 import type {
 	Student,
 	StudentFilters,
 	StudentStatus,
 } from "../../types/student.types";
-import {
-	STUDENT_LICENSE_CLASSES,
-	STUDENT_STATUS_LABELS,
-	STUDENT_STATUS_OPTIONS,
-} from "../../types/student.types";
 import "./StudentManagementPage.css";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 const STATUS_THEME: Record<StudentStatus, string> = {
 	studying: "student-pill--studying",
@@ -22,16 +26,6 @@ const STATUS_THEME: Record<StudentStatus, string> = {
 	completed: "student-pill--completed",
 	locked: "student-pill--locked",
 };
-
-function initials(name: string) {
-	return name
-		.split(" ")
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((part) => part[0])
-		.join("")
-		.toUpperCase();
-}
 
 function SummaryCard({
 	title,
@@ -76,19 +70,18 @@ function FilterBar({
 			</div>
 
 			<select
-				value={filters.licenseClass}
+				value={filters.licenseTier}
 				onChange={(e) =>
 					update({
-						licenseClass: e.target
-							.value as StudentFilters["licenseClass"],
+						licenseTier: e.target.value as LicenseTier | "",
 					})
 				}>
 				<option value="">Hạng bằng</option>
-				{STUDENT_LICENSE_CLASSES.map((cls) => (
+				{STUDENT_LICENSE_TIERS.map((tier) => (
 					<option
-						key={cls}
-						value={cls}>
-						{cls}
+						key={tier}
+						value={tier}>
+						{tier}
 					</option>
 				))}
 			</select>
@@ -113,7 +106,7 @@ function FilterBar({
 			<button
 				className="student-filters__clear"
 				onClick={() =>
-					onChange({ search: "", licenseClass: "", status: "" })
+					onChange({ search: "", licenseTier: "", status: "" })
 				}>
 				⊘ Lọc
 			</button>
@@ -142,81 +135,76 @@ function StudentTable({
 						<th>Học Viên</th>
 						<th>Liên Hệ</th>
 						<th>Hạng Bằng</th>
-						<th>Tiến Độ</th>
-						<th>Số Lần Thi</th>
-						<th>Kết Quả Gần Nhất</th>
+						<th>Ngày Nhập Học</th>
 						<th>Trạng Thái</th>
 						<th>Thao Tác</th>
 					</tr>
 				</thead>
 				<tbody>
-					{students.map((student) => (
-						<tr
-							key={student.id}
-							onClick={() => onOpen(student.id)}>
-							<td>
-								<div className="student-table__name">
-									<div
-										className="student-avatar"
-										style={{
-											background: student.avatarColor,
+					{students.map((student) => {
+						const status = studentStatus(student);
+						return (
+							<tr
+								key={student.id}
+								onClick={() => onOpen(student.id)}>
+								<td>
+									<div className="student-table__name">
+										<div
+											className="student-avatar"
+											style={{
+												background: studentAvatarColor(
+													student.id,
+												),
+											}}>
+											{studentInitials(student.fullName)}
+										</div>
+										<div>
+											<div className="student-table__fullname">
+												{student.fullName}
+											</div>
+											<div className="student-table__meta">
+												{student.id.slice(0, 8)}
+											</div>
+										</div>
+									</div>
+								</td>
+								<td>
+									<div className="student-table__contact">
+										<span>{student.email}</span>
+										<span>{student.phoneNumber ?? "—"}</span>
+									</div>
+								</td>
+								<td>
+									<span className="student-rank">
+										{student.licenseTier ?? "Chưa phân"}
+									</span>
+								</td>
+								<td>
+									{student.enrolledAt
+										? new Date(
+												student.enrolledAt,
+											).toLocaleDateString("vi-VN")
+										: "—"}
+								</td>
+								<td>
+									<span
+										className={`student-pill ${STATUS_THEME[status]}`}>
+										{STUDENT_STATUS_LABELS[status]}
+									</span>
+								</td>
+								<td>
+									<button
+										className="student-table__action"
+										onClick={(e) => {
+											e.stopPropagation();
+											onOpen(student.id);
 										}}>
-										{initials(student.fullName)}
-									</div>
-									<div>
-										<div className="student-table__fullname">
-											{student.fullName}
-										</div>
-										<div className="student-table__meta">
-											{student.code}
-										</div>
-									</div>
-								</div>
-							</td>
-							<td>
-								<div className="student-table__contact">
-									<span>{student.email}</span>
-									<span>{student.phone}</span>
-								</div>
-							</td>
-							<td>
-								<span className="student-rank">
-									{student.licenseClass}
-								</span>
-							</td>
-							<td>
-								<div className="student-progress-cell">
-									<span>{student.progress}%</span>
-									<ProgressBar percent={student.progress} />
-								</div>
-							</td>
-							<td>{student.examCount}</td>
-							<td>
-								<span
-									className={`student-result student-result--${student.lastResult}`}>
-									{student.lastResult === "pass"
-										? "Đạt"
-										: "Không đạt"}
-								</span>
-							</td>
-							<td>
-								<span
-									className={`student-pill ${STATUS_THEME[student.status]}`}>
-									{STUDENT_STATUS_LABELS[student.status]}
-								</span>
-							</td>
-							<td>
-								<button
-									className="student-table__action"
-									onClick={(e) => {
-										e.stopPropagation();
-										onOpen(student.id);
-									}}>
-									Chi tiết
-								</button>
-							</td>
-						</tr>
-					))}
+										Chi tiết
+									</button>
+								</td>
+							</tr>
+						);
+					})}
 				</tbody>
 			</table>
 		</div>
@@ -271,50 +259,70 @@ export default function StudentManagementPage() {
 	const navigate = useNavigate();
 	const [filters, setFilters] = useState<StudentFilters>({
 		search: "",
-		licenseClass: "",
+		licenseTier: "",
 		status: "",
 	});
 	const [currentPage, setCurrentPage] = useState(1);
+	const [students, setStudents] = useState<Student[]>([]);
+	const [total, setTotal] = useState(0);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
-	const filtered = useMemo(() => {
-		const q = filters.search.trim().toLowerCase();
-		return MOCK_STUDENTS.filter((student) => {
-			const matchSearch =
-				!q ||
-				student.fullName.toLowerCase().includes(q) ||
-				student.email.toLowerCase().includes(q) ||
-				student.phone.includes(q);
-			const matchClass =
-				!filters.licenseClass ||
-				student.licenseClass === filters.licenseClass;
-			const matchStatus =
-				!filters.status || student.status === filters.status;
-			return matchSearch && matchClass && matchStatus;
-		});
-	}, [filters]);
+	useEffect(() => {
+		let cancelled = false;
+		setLoading(true);
+		setError("");
 
-	const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-	const pageSafe = Math.min(currentPage, totalPages);
-	const paginated = filtered.slice(
-		(pageSafe - 1) * PAGE_SIZE,
-		pageSafe * PAGE_SIZE,
-	);
+		const isActive =
+			filters.status === "locked"
+				? false
+				: filters.status === ""
+					? undefined
+					: true;
 
-	const totals = useMemo(
-		() => ({
-			total: MOCK_STUDENTS.length,
-			studying: MOCK_STUDENTS.filter(
-				(student) => student.status === "studying",
-			).length,
-			warning: MOCK_STUDENTS.filter(
-				(student) => student.status === "warning",
-			).length,
-			completed: MOCK_STUDENTS.filter(
-				(student) => student.status === "completed",
-			).length,
-		}),
-		[],
-	);
+		userService
+			.list({
+				role: "STUDENT",
+				page: currentPage,
+				size: PAGE_SIZE,
+				search: filters.search.trim() || undefined,
+				isActive,
+			})
+			.then((res) => {
+				if (cancelled) return;
+				if (res.success) {
+					let mapped = res.data.items.map(studentFromProfile);
+					if (filters.licenseTier) {
+						mapped = mapped.filter(
+							(s) => s.licenseTier === filters.licenseTier,
+						);
+					}
+					setStudents(mapped);
+					setTotal(res.data.total);
+				} else {
+					setError(res.error);
+					setStudents([]);
+					setTotal(0);
+				}
+				setLoading(false);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [filters.search, filters.status, filters.licenseTier, currentPage]);
+
+	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+	const summary = useMemo(() => {
+		const studying = students.filter(
+			(s) => studentStatus(s) === "studying",
+		).length;
+		const locked = students.filter(
+			(s) => studentStatus(s) === "locked",
+		).length;
+		return { total, studying, locked };
+	}, [students, total]);
 
 	const handleFilters = (next: StudentFilters) => {
 		setFilters(next);
@@ -338,23 +346,23 @@ export default function StudentManagementPage() {
 			<div className="student-summary-grid">
 				<SummaryCard
 					title="Tổng học viên"
-					value={totals.total.toLocaleString("vi-VN")}
+					value={summary.total.toLocaleString("vi-VN")}
 					accent="#f3f4f6"
 				/>
 				<SummaryCard
-					title="Đang học"
-					value={totals.studying.toLocaleString("vi-VN")}
-					accent="#f3f4f6"
+					title="Đang học (trang)"
+					value={summary.studying.toLocaleString("vi-VN")}
+					accent="#4ade80"
 				/>
 				<SummaryCard
-					title="Cần cảnh báo"
-					value={totals.warning.toLocaleString("vi-VN")}
-					accent="#fbbf24"
+					title="Đã khóa (trang)"
+					value={summary.locked.toLocaleString("vi-VN")}
+					accent="#ef4444"
 				/>
 				<SummaryCard
 					title="Hoàn thành"
-					value={totals.completed.toLocaleString("vi-VN")}
-					accent="#4ade80"
+					value="—"
+					accent="#94a3b8"
 				/>
 			</div>
 
@@ -363,13 +371,19 @@ export default function StudentManagementPage() {
 				onChange={handleFilters}
 			/>
 
-			<StudentTable
-				students={paginated}
-				onOpen={(id) => navigate(`/students/${id}`)}
-			/>
+			{loading && <div className="student-empty">Đang tải...</div>}
+			{error && !loading && (
+				<div className="student-empty">Lỗi: {error}</div>
+			)}
+			{!loading && !error && (
+				<StudentTable
+					students={students}
+					onOpen={(id) => navigate(`/students/${id}`)}
+				/>
+			)}
 
 			<Pagination
-				currentPage={pageSafe}
+				currentPage={currentPage}
 				totalPages={totalPages}
 				onChange={setCurrentPage}
 			/>

@@ -1,48 +1,37 @@
-export type UserRole = 'admin' | 'center_manager' | 'instructor';
-export type UserStatus = 'active' | 'inactive';
-export type LicenseClass = 'A1' | 'A2' | 'B1' | 'B2' | 'C' | 'D' | 'E' | 'F';
+export type {
+  UserRole,
+  IdentityUser,
+  CreateIdentityUserPayload,
+  UpdateIdentityUserPayload,
+  IdentityUserListParams,
+  CreateIdentityUserResponse,
+  ChangeRoleResponse,
+  LockResponse,
+} from "./identity.types";
 
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  status: UserStatus;
-  licenseClasses: LicenseClass[];
-  startDate: string;
-  createdAt: string;
-  avatarColor: string;
-}
+export { ROLE_LABELS } from "./identity.types";
 
-export interface UserFilters {
-  search: string;
-  role: UserRole | '';
-  status: UserStatus | '';
-}
+export type {
+  Gender,
+  LicenseTier,
+  StudentDetail,
+  UserProfile,
+  CreateUserProfilePayload,
+  UpdateUserProfilePayload,
+  UserListParams,
+} from "./user-profile.types";
 
-export interface UserFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  password: string;
-  role: UserRole | '';
-  status: UserStatus | '';
-  startDate: string;
-  licenseClasses: LicenseClass[];
-}
+export { GENDER_LABELS, LICENSE_TIERS } from "./user-profile.types";
 
-export const ROLE_LABELS: Record<UserRole, string> = {
-  admin: 'Admin',
-  center_manager: 'Center Manager',
-  instructor: 'Giảng viên',
-};
-
-export const STATUS_LABELS: Record<UserStatus, string> = {
-  active: 'Hoạt động',
-  inactive: 'Tạm dừng',
-};
-
-export const LICENSE_CLASSES: LicenseClass[] = ['A1', 'A2', 'B1', 'B2', 'C', 'D', 'E', 'F'];
+// Legacy alias kept for student management pages (out of scope for current refactor).
+export type LicenseClass = "A1" | "A2" | "B1" | "B2" | "C" | "D" | "E" | "F";
+export const LICENSE_CLASSES: LicenseClass[] = [
+  "A1",
+  "A2",
+  "B1",
+  "B2",
+  "C",
+  "D",
+  "E",
+  "F",
+];

@@ -1,32 +1,32 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_COURSES } from '../../data/courseData';
-import type { Course, CourseFilters, CourseStatus } from '../../types/course.types';
+import { courseService } from '@/services';
+import type { CourseFilters, CourseResponse, CourseStatus, LicenseCategory } from '../../types/course.types';
 import {
-  COURSE_LICENSE_CLASSES,
+  COURSE_LICENSE_CATEGORIES,
   COURSE_STATUS_LABELS,
   COURSE_STATUS_OPTIONS,
 } from '../../types/course.types';
 import './CourseManagementPage.css';
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 10;
 
 const STATUS_PILL: Record<CourseStatus, string> = {
-  active: 'course-pill--active',
-  draft: 'course-pill--draft',
-  inactive: 'course-pill--inactive',
+  ACTIVE: 'course-pill--active',
+  DRAFT: 'course-pill--draft',
+  ARCHIVED: 'course-pill--archived',
 };
 
 function formatFee(fee: number) {
   return fee.toLocaleString('vi-VN') + 'đ';
 }
 
-function SummaryCard({ title, value, accent }: { title: string; value: string; accent?: string }) {
+function SummaryCard({ title, value, accent }: { title: string; value: string | number; accent?: string }) {
   return (
     <div className="course-summary-card">
       <div className="course-summary-card__title">{title}</div>
       <div className="course-summary-card__value" style={accent ? { color: accent } : undefined}>
-        {value}
+        {typeof value === 'number' ? value.toLocaleString('vi-VN') : value}
       </div>
     </div>
   );
@@ -55,14 +55,14 @@ function FilterBar({
         />
       </div>
 
-      <select value={filters.licenseClass} onChange={(e) => update({ licenseClass: e.target.value })}>
+      <select value={filters.licenseCategory} onChange={(e) => update({ licenseCategory: e.target.value as LicenseCategory | '' })}>
         <option value="">Tất cả hạng</option>
-        {COURSE_LICENSE_CLASSES.map((cls) => (
+        {COURSE_LICENSE_CATEGORIES.map((cls) => (
           <option key={cls} value={cls}>{cls}</option>
         ))}
       </select>
 
-      <select value={filters.status} onChange={(e) => update({ status: e.target.value })}>
+      <select value={filters.status} onChange={(e) => update({ status: e.target.value as CourseStatus | '' })}>
         <option value="">Tất cả</option>
         {COURSE_STATUS_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -71,7 +71,7 @@ function FilterBar({
 
       <button
         className="course-filters__reset"
-        onClick={() => onChange({ search: '', licenseClass: '', status: '' })}
+        onClick={() => onChange({ search: '', licenseCategory: '', status: '' })}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M3 6h18M6 6V4h12v2M19 6l-1 14H6L5 6" />
@@ -87,7 +87,7 @@ function CourseTable({
   onView,
   onEdit,
 }: {
-  courses: Course[];
+  courses: CourseResponse[];
   onView: (id: string) => void;
   onEdit: (id: string) => void;
 }) {
@@ -101,31 +101,12 @@ function CourseTable({
         <thead>
           <tr>
             <th>#</th>
-            <th>
-              Tên khóa học{' '}
-              <span className="course-table__sort">⇅</span>
-            </th>
-            <th>
-              Hạng bằng{' '}
-              <span className="course-table__sort">⇅</span>
-            </th>
-            <th>
-              Thời lượng{' '}
-              <span className="course-table__sort">⇅</span>
-            </th>
-            <th>
-              Bài học{' '}
-              <span className="course-table__sort">⇅</span>
-            </th>
-            <th>
-              Học viên{' '}
-              <span className="course-table__sort">⇅</span>
-            </th>
+            <th>Tên khóa học</th>
+            <th>Hạng bằng</th>
+            <th>Thời lượng</th>
+            <th>Bài học</th>
             <th>Học phí</th>
-            <th>
-              Trạng thái{' '}
-              <span className="course-table__sort">⇅</span>
-            </th>
+            <th>Trạng thái</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
@@ -133,29 +114,18 @@ function CourseTable({
           {courses.map((course, index) => (
             <tr key={course.id}>
               <td className="course-table__num">{index + 1}</td>
-              <td className="course-table__name">{course.name}</td>
+              <td className="course-table__name">{course.title}</td>
               <td>
-                <span className="course-badge">{course.licenseClass}</span>
+                <span className="course-badge">{course.licenseCategory}</span>
               </td>
-              <td>{course.duration}</td>
+              <td>{course.duration ?? '—'}</td>
               <td>
                 <span className="course-table__icon-cell">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                   </svg>
-                  {course.lessonCount}
-                </span>
-              </td>
-              <td>
-                <span className="course-table__icon-cell">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                  {course.studentCount.toLocaleString('vi-VN')}
+                  {course.totalLessons}
                 </span>
               </td>
               <td className="course-table__fee">{formatFee(course.tuitionFee)}</td>
@@ -166,20 +136,14 @@ function CourseTable({
               </td>
               <td>
                 <div className="course-table__actions">
-                  <button
-                    className="course-btn-view"
-                    onClick={() => onView(course.id)}
-                  >
+                  <button className="course-btn-view" onClick={() => onView(course.id)}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                     Xem
                   </button>
-                  <button
-                    className="course-btn-edit"
-                    onClick={() => onEdit(course.id)}
-                  >
+                  <button className="course-btn-edit" onClick={() => onEdit(course.id)}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -211,6 +175,7 @@ function Pagination({
 }) {
   const start = (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, totalItems);
+  const pages = Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1);
 
   return (
     <div className="course-pagination">
@@ -218,10 +183,8 @@ function Pagination({
         Hiển thị {start}–{end} / {totalItems} khóa học
       </span>
       <div className="course-pagination__controls">
-        <button disabled={currentPage === 1} onClick={() => onChange(currentPage - 1)}>
-          Trước
-        </button>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+        <button disabled={currentPage === 1} onClick={() => onChange(currentPage - 1)}>Trước</button>
+        {pages.map((page) => (
           <button
             key={page}
             className={page === currentPage ? 'course-pagination__page--active' : ''}
@@ -230,9 +193,7 @@ function Pagination({
             {page}
           </button>
         ))}
-        <button disabled={currentPage === totalPages} onClick={() => onChange(currentPage + 1)}>
-          Sau
-        </button>
+        <button disabled={currentPage === totalPages} onClick={() => onChange(currentPage + 1)}>Sau</button>
       </div>
     </div>
   );
@@ -240,37 +201,58 @@ function Pagination({
 
 export default function CourseManagementPage() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<CourseFilters>({ search: '', licenseClass: '', status: '' });
+  const [courses, setCourses] = useState<CourseResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalActive, setTotalActive] = useState(0);
+  const [filters, setFilters] = useState<CourseFilters>({ search: '', licenseCategory: '', status: '' });
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const filtered = useMemo(() => {
-    const q = filters.search.trim().toLowerCase();
-    return MOCK_COURSES.filter((course) => {
-      const matchSearch = !q || course.name.toLowerCase().includes(q);
-      const matchClass = !filters.licenseClass || course.licenseClass === filters.licenseClass;
-      const matchStatus = !filters.status || course.status === filters.status;
-      return matchSearch && matchClass && matchStatus;
-    });
-  }, [filters]);
+  const fetchCourses = useCallback(async (page: number, f: CourseFilters) => {
+    setLoading(true);
+    setError('');
+    const params = {
+      page,
+      size: PAGE_SIZE,
+      ...(f.licenseCategory ? { licenseCategory: f.licenseCategory } : {}),
+      ...(f.status ? { status: f.status } : {}),
+    };
+    const result = await courseService.list(params);
+    if (result.success) {
+      setCourses(result.data.items);
+      setTotal(result.data.total);
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageSafe = Math.min(currentPage, totalPages);
-  const paginated = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const fetchStats = useCallback(async () => {
+    const res = await courseService.list({ size: 1, status: 'ACTIVE' });
+    if (res.success) setTotalActive(res.data.total);
+  }, []);
 
-  const totals = useMemo(
-    () => ({
-      total: MOCK_COURSES.length,
-      active: MOCK_COURSES.filter((c) => c.status === 'active').length,
-      students: MOCK_COURSES.reduce((sum, c) => sum + c.studentCount, 0),
-      lessons: MOCK_COURSES.reduce((sum, c) => sum + c.lessonCount, 0),
-    }),
-    [],
-  );
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  useEffect(() => {
+    fetchCourses(currentPage, filters);
+  }, [currentPage, filters, fetchCourses]);
 
   const handleFilters = (next: CourseFilters) => {
     setFilters(next);
     setCurrentPage(1);
   };
+
+  const filtered = useMemo(() => {
+    const q = filters.search.trim().toLowerCase();
+    if (!q) return courses;
+    return courses.filter((c) => c.title.toLowerCase().includes(q));
+  }, [courses, filters.search]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="course-management">
@@ -285,24 +267,28 @@ export default function CourseManagementPage() {
       </div>
 
       <div className="course-summary-grid">
-        <SummaryCard title="Tổng khóa học" value={totals.total.toString()} />
-        <SummaryCard title="Đang hoạt động" value={totals.active.toString()} accent="#4ade80" />
-        <SummaryCard title="Tổng học viên" value={totals.students.toLocaleString('vi-VN')} />
-        <SummaryCard title="Bài học" value={totals.lessons.toString()} />
+        <SummaryCard title="Tổng khóa học" value={total} />
+        <SummaryCard title="Đang hoạt động" value={totalActive} accent="#4ade80" />
       </div>
+
+      {error && <div className="course-error">{error}</div>}
 
       <FilterBar filters={filters} onChange={handleFilters} />
 
-      <CourseTable
-        courses={paginated}
-        onView={(id) => navigate(`/courses/${id}`)}
-        onEdit={(id) => navigate(`/courses/${id}/edit`)}
-      />
+      {loading ? (
+        <div className="course-empty">Đang tải...</div>
+      ) : (
+        <CourseTable
+          courses={filtered}
+          onView={(id) => navigate(`/courses/${id}`)}
+          onEdit={(id) => navigate(`/courses/${id}/edit`)}
+        />
+      )}
 
       <Pagination
-        currentPage={pageSafe}
+        currentPage={currentPage}
         totalPages={totalPages}
-        totalItems={filtered.length}
+        totalItems={total}
         pageSize={PAGE_SIZE}
         onChange={setCurrentPage}
       />

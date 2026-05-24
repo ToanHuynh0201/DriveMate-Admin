@@ -313,6 +313,137 @@
   border-color: rgba(46, 204, 113, 0.4);
 }
 
+.action-btn--edit:hover {
+  background: rgba(49, 130, 206, 0.15);
+  border-color: rgba(49, 130, 206, 0.4);
+}
+
+.action-btn--role:hover {
+  background: rgba(128, 90, 213, 0.15);
+  border-color: rgba(128, 90, 213, 0.4);
+}
+
+.action-btn--delete:hover {
+  background: rgba(229, 62, 62, 0.15);
+  border-color: rgba(229, 62, 62, 0.4);
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== User Modals ===== */
+.user-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.user-modal__box {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: 420px;
+  max-width: 95vw;
+  color: #f0f0f0;
+}
+
+.user-modal__title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.user-modal__error {
+  color: #fc8181;
+  font-size: 13px;
+  margin-bottom: 12px;
+  background: rgba(229, 62, 62, 0.12);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(229, 62, 62, 0.3);
+}
+
+.user-modal__field {
+  margin-bottom: 16px;
+}
+
+.user-modal__field label {
+  display: block;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.user-modal__field input,
+.user-modal__field select {
+  width: 100%;
+  padding: 9px 12px;
+  background: #2a2a2a;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #f0f0f0;
+  box-sizing: border-box;
+}
+
+.user-modal__field input:focus,
+.user-modal__field select:focus {
+  outline: none;
+  border-color: #555;
+}
+
+.user-modal__field select option {
+  background: #2a2a2a;
+}
+
+.user-modal__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.user-modal__btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #444;
+  background: #2e2e2e;
+  color: #ddd;
+  transition: background 0.15s;
+}
+
+.user-modal__btn:hover {
+  background: #3a3a3a;
+}
+
+.user-modal__btn--primary {
+  background: #3182ce;
+  border-color: #3182ce;
+  color: #fff;
+}
+
+.user-modal__btn--primary:hover {
+  background: #2b6cb0;
+}
+
+.user-modal__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ===== Pagination ===== */
 .pagination {
   display: flex;

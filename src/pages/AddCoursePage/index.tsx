@@ -1,99 +1,157 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MOCK_COURSES, MOCK_INSTRUCTORS } from '../../data/courseData';
-import type { CourseFormData } from '../../types/course.types';
-import { COURSE_LICENSE_CLASSES, COURSE_STATUS_OPTIONS } from '../../types/course.types';
+import { courseService } from '@/services';
+import type { CourseFormData, LicenseCategory } from '../../types/course.types';
+import { COURSE_LICENSE_CATEGORIES } from '../../types/course.types';
 import './AddCoursePage.css';
 
-type FormTab = 'basic' | 'content' | 'requirements';
-
 const DEFAULT_FORM: CourseFormData = {
-  name: '',
-  licenseClass: '',
-  duration: '',
-  tuitionFee: 5000000,
-  capacity: 30,
+  title: '',
+  licenseCategory: '',
   description: '',
-  status: '',
-  instructors: [],
-  lessons: [{ title: '' }, { title: '' }, { title: '' }, { title: '' }, { title: '' }],
-  materials: [],
-  minAge: 18,
-  prerequisite: '',
-  attendanceRate: 80,
-  minPassScore: 80,
-  requiredExams: 3,
+  duration: '',
+  tuitionFee: 0,
+  capacity: 30,
+  instructorIds: [],
+  requirement: {
+    minAge: 18,
+    prerequisites: '',
+    attendanceRate: 80,
+    minPassScore: 80,
+    requiredExams: 2,
+  },
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function parseInstructorIds(raw: string): { ids: string[]; invalid: string[] } {
+  const tokens = raw
+    .split(/[\s,;\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const ids: string[] = [];
+  const invalid: string[] = [];
+  for (const token of tokens) {
+    if (UUID_RE.test(token)) ids.push(token);
+    else invalid.push(token);
+  }
+  return { ids, invalid };
+}
 
 export default function AddCoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(courseId);
 
-  const [activeTab, setActiveTab] = useState<FormTab>('basic');
   const [form, setForm] = useState<CourseFormData>(DEFAULT_FORM);
-  const [showInstructorDropdown, setShowInstructorDropdown] = useState(false);
+  const [instructorIdsRaw, setInstructorIdsRaw] = useState('');
+  const [instructorIdsError, setInstructorIdsError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [errors, setErrors] = useState<Partial<Record<'title' | 'licenseCategory', string>>>({});
 
   useEffect(() => {
-    if (isEdit && courseId) {
-      const course = MOCK_COURSES.find((c) => c.id === courseId);
-      if (course) {
+    if (!isEdit || !courseId) return;
+    setFetchLoading(true);
+    courseService.getById(courseId).then((res) => {
+      setFetchLoading(false);
+      if (res.success) {
+        const c = res.data;
         setForm({
-          name: course.name,
-          licenseClass: course.licenseClass,
-          duration: course.duration,
-          tuitionFee: course.tuitionFee,
-          capacity: course.capacity,
-          description: course.description,
-          status: course.status,
-          instructors: [...course.instructors],
-          lessons: course.lessons.map((l) => ({ title: l.title })),
-          materials: course.materials.map((m) => ({ name: m.name, url: '' })),
-          minAge: course.minAge,
-          prerequisite: course.prerequisite,
-          attendanceRate: course.attendanceRate,
-          minPassScore: course.minPassScore,
-          requiredExams: course.requiredExams,
+          title: c.title,
+          licenseCategory: c.licenseCategory,
+          description: c.description ?? '',
+          duration: c.duration ?? '',
+          tuitionFee: c.tuitionFee,
+          capacity: c.capacity ?? 30,
+          instructorIds: c.instructorIds ?? [],
+          requirement: {
+            minAge: c.requirement?.minAge ?? 18,
+            prerequisites: c.requirement?.prerequisites ?? '',
+            attendanceRate: c.requirement?.attendanceRate ?? 80,
+            minPassScore: c.requirement?.minPassScore ?? 80,
+            requiredExams: c.requirement?.requiredExams ?? 2,
+          },
         });
+        setInstructorIdsRaw((c.instructorIds ?? []).join('\n'));
+      } else {
+        setSubmitError(res.error);
       }
-    }
+    });
   }, [isEdit, courseId]);
 
-  const updateForm = (patch: Partial<CourseFormData>) => setForm((f) => ({ ...f, ...patch }));
+  const update = (patch: Partial<CourseFormData>) => setForm((f) => ({ ...f, ...patch }));
+  const updateReq = (patch: Partial<CourseFormData['requirement']>) =>
+    setForm((f) => ({ ...f, requirement: { ...f.requirement, ...patch } }));
 
-  const addLesson = () => updateForm({ lessons: [...form.lessons, { title: '' }] });
-  const removeLesson = (idx: number) =>
-    updateForm({ lessons: form.lessons.filter((_, i) => i !== idx) });
-  const updateLesson = (idx: number, title: string) =>
-    updateForm({ lessons: form.lessons.map((l, i) => (i === idx ? { title } : l)) });
+  const validate = (): boolean => {
+    const errs: typeof errors = {};
+    if (!form.title.trim()) errs.title = 'Vui lòng nhập tên khóa học';
+    if (!form.licenseCategory) errs.licenseCategory = 'Vui lòng chọn hạng bằng';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
-  const addMaterial = () => updateForm({ materials: [...form.materials, { name: '', url: '' }] });
-  const removeMaterial = (idx: number) =>
-    updateForm({ materials: form.materials.filter((_, i) => i !== idx) });
-  const updateMaterial = (idx: number, field: 'name' | 'url', value: string) =>
-    updateForm({
-      materials: form.materials.map((m, i) =>
-        i === idx ? { ...m, [field]: value } : m,
-      ),
-    });
+  const handleSubmit = async () => {
+    if (!validate()) return;
 
-  const toggleInstructor = (name: string) => {
-    const current = form.instructors;
-    if (current.includes(name)) {
-      updateForm({ instructors: current.filter((i) => i !== name) });
+    const { ids: parsedInstructorIds, invalid } = parseInstructorIds(instructorIdsRaw);
+    if (invalid.length > 0) {
+      setInstructorIdsError(`UUID không hợp lệ: ${invalid.join(', ')}`);
+      return;
+    }
+    setInstructorIdsError('');
+
+    setLoading(true);
+    setSubmitError('');
+
+    const req = {
+      minAge: form.requirement.minAge || undefined,
+      prerequisites: form.requirement.prerequisites.trim() || undefined,
+      attendanceRate: form.requirement.attendanceRate,
+      minPassScore: form.requirement.minPassScore,
+      requiredExams: form.requirement.requiredExams,
+    };
+
+    const result = isEdit && courseId
+      ? await courseService.update(courseId, {
+          title: form.title.trim(),
+          description: form.description.trim() || undefined,
+          duration: form.duration.trim() || undefined,
+          tuitionFee: form.tuitionFee,
+          capacity: form.capacity || undefined,
+          requirement: req,
+        })
+      : await courseService.create({
+          title: form.title.trim(),
+          licenseCategory: form.licenseCategory as LicenseCategory,
+          description: form.description.trim() || undefined,
+          duration: form.duration.trim() || undefined,
+          tuitionFee: form.tuitionFee,
+          capacity: form.capacity || undefined,
+          instructorIds: parsedInstructorIds.length > 0 ? parsedInstructorIds : undefined,
+          requirement: req,
+        });
+
+    setLoading(false);
+
+    if (result.success) {
+      navigate(isEdit ? `/courses/${courseId}` : `/courses/${result.data.id}`);
     } else {
-      updateForm({ instructors: [...current, name] });
+      setSubmitError(result.error);
     }
   };
 
-  const removeInstructor = (name: string) =>
-    updateForm({ instructors: form.instructors.filter((i) => i !== name) });
+  if (fetchLoading) {
+    return <div className="add-course"><div className="add-course__loading">Đang tải...</div></div>;
+  }
 
   return (
     <div className="add-course">
       <div className="add-course__header">
         <div className="add-course__header-left">
-          <button className="add-course__back" onClick={() => navigate('/courses')}>
+          <button className="add-course__back" onClick={() => navigate(isEdit ? `/courses/${courseId}` : '/courses')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
@@ -105,312 +163,195 @@ export default function AddCoursePage() {
         </div>
       </div>
 
+      {submitError && <div className="add-course__submit-error">{submitError}</div>}
+
       <div className="add-course__body">
-        {/* Main content */}
         <div className="add-course__main">
-          {/* Tab nav */}
-          <div className="add-course__tabs">
-            {[
-              { key: 'basic', label: 'Thông Tin Cơ Bản' },
-              { key: 'content', label: 'Nội Dung' },
-              { key: 'requirements', label: 'Yêu Cầu' },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                className={activeTab === key ? 'add-course__tab--active' : ''}
-                onClick={() => setActiveTab(key as FormTab)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab: Thông Tin Cơ Bản */}
-          {activeTab === 'basic' && (
-            <div className="add-course__section">
-              <div className="add-course__section-title">Thông Tin Chung</div>
-              <div className="add-course__form-body">
-                <div className="add-course__form-group">
-                  <label>Tên khóa học</label>
-                  <input
-                    value={form.name}
-                    onChange={(e) => updateForm({ name: e.target.value })}
-                    placeholder="VD: Khóa học B1 – Cơ bản"
-                  />
-                </div>
-
-                <div className="add-course__form-row">
-                  <div className="add-course__form-group">
-                    <label>Hạng bằng</label>
-                    <select
-                      value={form.licenseClass}
-                      onChange={(e) => updateForm({ licenseClass: e.target.value })}
-                    >
-                      <option value="">Chọn hạng</option>
-                      {COURSE_LICENSE_CLASSES.map((cls) => (
-                        <option key={cls} value={cls}>{cls}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="add-course__form-group">
-                    <label>Thời lượng</label>
-                    <input
-                      value={form.duration}
-                      onChange={(e) => updateForm({ duration: e.target.value })}
-                      placeholder="VD: 3 tháng"
-                    />
-                  </div>
-                </div>
-
-                <div className="add-course__form-row">
-                  <div className="add-course__form-group">
-                    <label>Học phí</label>
-                    <input
-                      type="number"
-                      value={form.tuitionFee}
-                      onChange={(e) => updateForm({ tuitionFee: Number(e.target.value) })}
-                      placeholder="5000000"
-                    />
-                  </div>
-                  <div className="add-course__form-group">
-                    <label>Sức chứa lớp</label>
-                    <input
-                      type="number"
-                      value={form.capacity}
-                      onChange={(e) => updateForm({ capacity: Number(e.target.value) })}
-                      placeholder="30"
-                    />
-                  </div>
-                </div>
-
-                <div className="add-course__form-group">
-                  <label>Mô tả khóa học</label>
-                  <textarea
-                    value={form.description}
-                    onChange={(e) => updateForm({ description: e.target.value })}
-                    placeholder="Nhập mô tả chi tiết về khóa học..."
-                    rows={4}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tab: Nội Dung */}
-          {activeTab === 'content' && (
-            <>
-              <div className="add-course__section">
-                <div className="add-course__section-header-row">
-                  <div className="add-course__section-title">Danh Sách Bài Học</div>
-                  <button className="add-course__add-item-btn" onClick={addLesson}>
-                    + Thêm Bài
-                  </button>
-                </div>
-                <div className="add-course__lesson-list">
-                  {form.lessons.map((lesson, idx) => (
-                    <div key={idx} className="add-course__lesson-row">
-                      <div className="add-course__lesson-num">{idx + 1}</div>
-                      <input
-                        value={lesson.title}
-                        onChange={(e) => updateLesson(idx, e.target.value)}
-                        placeholder={`Tên bài học ${idx + 1}`}
-                      />
-                      <button
-                        className="add-course__remove-btn"
-                        onClick={() => removeLesson(idx)}
-                        title="Xóa bài học"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6l-1 14H6L5 6" />
-                          <path d="M10 11v6M14 11v6" />
-                          <path d="M9 6V4h6v2" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
+          {/* Thông Tin Cơ Bản */}
+          <div className="add-course__section">
+            <div className="add-course__section-title">Thông Tin Cơ Bản</div>
+            <div className="add-course__form-body">
+              <div className="add-course__form-group">
+                <label>Tên khóa học *</label>
+                <input
+                  value={form.title}
+                  onChange={(e) => { update({ title: e.target.value }); setErrors((er) => ({ ...er, title: '' })); }}
+                  placeholder="VD: Khóa học B2 cơ bản"
+                  className={errors.title ? 'add-course__input--error' : ''}
+                />
+                {errors.title && <span className="add-course__error">{errors.title}</span>}
               </div>
 
-              <div className="add-course__section">
-                <div className="add-course__section-header-row">
-                  <div className="add-course__section-title">Tài Liệu Học Tập</div>
-                  <button className="add-course__add-item-btn" onClick={addMaterial}>
-                    + Thêm Tài Liệu
-                  </button>
-                </div>
-                {form.materials.length === 0 ? (
-                  <div className="add-course__empty">Chưa có tài liệu nào</div>
-                ) : (
-                  <div className="add-course__material-list">
-                    {form.materials.map((mat, idx) => (
-                      <div key={idx} className="add-course__material-row">
-                        <input
-                          value={mat.name}
-                          onChange={(e) => updateMaterial(idx, 'name', e.target.value)}
-                          placeholder="Tên tài liệu"
-                        />
-                        <input
-                          value={mat.url}
-                          onChange={(e) => updateMaterial(idx, 'url', e.target.value)}
-                          placeholder="URL tài liệu"
-                        />
-                        <button
-                          className="add-course__remove-btn"
-                          onClick={() => removeMaterial(idx)}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14H6L5 6" />
-                            <path d="M10 11v6M14 11v6" />
-                            <path d="M9 6V4h6v2" />
-                          </svg>
-                        </button>
-                      </div>
+              <div className="add-course__form-row">
+                <div className="add-course__form-group">
+                  <label>Hạng bằng *</label>
+                  <select
+                    value={form.licenseCategory}
+                    onChange={(e) => { update({ licenseCategory: e.target.value as LicenseCategory | '' }); setErrors((er) => ({ ...er, licenseCategory: '' })); }}
+                    disabled={isEdit}
+                    className={errors.licenseCategory ? 'add-course__input--error' : ''}
+                  >
+                    <option value="">Chọn hạng bằng</option>
+                    {COURSE_LICENSE_CATEGORIES.map((cls) => (
+                      <option key={cls} value={cls}>{cls}</option>
                     ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Tab: Yêu Cầu */}
-          {activeTab === 'requirements' && (
-            <>
-              <div className="add-course__section">
-                <div className="add-course__section-title">Yêu Cầu Học Viên</div>
-                <div className="add-course__form-body">
-                  <div className="add-course__form-group">
-                    <label>Độ tuổi tối thiểu</label>
-                    <input
-                      type="number"
-                      value={form.minAge}
-                      onChange={(e) => updateForm({ minAge: Number(e.target.value) })}
-                      placeholder="18"
-                    />
-                  </div>
-                  <div className="add-course__form-group">
-                    <label>Điều kiện tiên quyết</label>
-                    <textarea
-                      value={form.prerequisite}
-                      onChange={(e) => updateForm({ prerequisite: e.target.value })}
-                      placeholder="VD: Đã có GPLX hạng A1..."
-                      rows={3}
-                    />
-                  </div>
+                  </select>
+                  {isEdit && <span className="add-course__hint">Không thể thay đổi sau khi tạo</span>}
+                  {errors.licenseCategory && <span className="add-course__error">{errors.licenseCategory}</span>}
+                </div>
+                <div className="add-course__form-group">
+                  <label>Thời lượng</label>
+                  <input
+                    value={form.duration}
+                    onChange={(e) => update({ duration: e.target.value })}
+                    placeholder="VD: 3 tháng"
+                  />
                 </div>
               </div>
 
-              <div className="add-course__section">
-                <div className="add-course__section-title">Yêu Cầu Hoàn Thành</div>
-                <div className="add-course__form-body">
-                  <div className="add-course__form-row">
-                    <div className="add-course__form-group">
-                      <label>Tỷ lệ tham dự (%)</label>
-                      <input
-                        type="number"
-                        value={form.attendanceRate}
-                        onChange={(e) => updateForm({ attendanceRate: Number(e.target.value) })}
-                        placeholder="80"
-                      />
-                    </div>
-                    <div className="add-course__form-group">
-                      <label>Điểm đạt tối thiểu</label>
-                      <input
-                        type="number"
-                        value={form.minPassScore}
-                        onChange={(e) => updateForm({ minPassScore: Number(e.target.value) })}
-                        placeholder="80"
-                      />
-                    </div>
-                  </div>
-                  <div className="add-course__form-group">
-                    <label>Số bài thi bắt buộc</label>
-                    <input
-                      type="number"
-                      value={form.requiredExams}
-                      onChange={(e) => updateForm({ requiredExams: Number(e.target.value) })}
-                      placeholder="3"
-                    />
-                  </div>
+              <div className="add-course__form-row">
+                <div className="add-course__form-group">
+                  <label>Học phí (đồng)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.tuitionFee}
+                    onChange={(e) => update({ tuitionFee: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="add-course__form-group">
+                  <label>Sức chứa (học viên)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.capacity}
+                    onChange={(e) => update({ capacity: Number(e.target.value) })}
+                  />
                 </div>
               </div>
-            </>
-          )}
-        </div>
 
-        {/* Sidebar */}
-        <div className="add-course__sidebar">
-          {/* Status */}
-          <div className="add-course__sidebar-card">
-            <div className="add-course__sidebar-title">Trạng Thái</div>
-            <label className="add-course__sidebar-label">Trạng thái khóa học</label>
-            <select
-              value={form.status}
-              onChange={(e) => updateForm({ status: e.target.value })}
-            >
-              <option value="">Chọn trạng thái</option>
-              {COURSE_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+              <div className="add-course__form-group">
+                <label>Mô tả khóa học</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => update({ description: e.target.value })}
+                  placeholder="Mô tả chi tiết về khóa học..."
+                  rows={4}
+                />
+              </div>
 
-          {/* Instructors */}
-          <div className="add-course__sidebar-card">
-            <div className="add-course__sidebar-title">Giảng Viên</div>
-            <p className="add-course__sidebar-desc">Chọn một hoặc nhiều giảng viên phụ trách</p>
-
-            {form.instructors.length > 0 && (
-              <div className="add-course__instructor-tags">
-                {form.instructors.map((name) => (
-                  <span key={name} className="add-course__instructor-tag">
-                    {name}
-                    <button onClick={() => removeInstructor(name)}>×</button>
+              {!isEdit && (
+                <div className="add-course__form-group">
+                  <label>Giảng viên phụ trách (UUID)</label>
+                  <textarea
+                    value={instructorIdsRaw}
+                    onChange={(e) => {
+                      setInstructorIdsRaw(e.target.value);
+                      setInstructorIdsError('');
+                    }}
+                    placeholder="Mỗi UUID 1 dòng hoặc cách nhau bằng dấu phẩy. VD: 550e8400-e29b-41d4-a716-446655440000"
+                    rows={3}
+                    className={instructorIdsError ? 'add-course__input--error' : ''}
+                  />
+                  <span className="add-course__hint">
+                    Tạm thời nhập UUID thủ công. Sẽ thay bằng multi-select khi user service được nối.
                   </span>
-                ))}
-              </div>
-            )}
-
-            <div className="add-course__instructor-select">
-              <button
-                className="add-course__instructor-toggle"
-                onClick={() => setShowInstructorDropdown((v) => !v)}
-              >
-                {form.instructors.length > 0
-                  ? `${form.instructors.length} giảng viên đã chọn`
-                  : 'Chọn giảng viên'}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d={showInstructorDropdown ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
-                </svg>
-              </button>
-              {showInstructorDropdown && (
-                <div className="add-course__instructor-dropdown">
-                  {MOCK_INSTRUCTORS.map((name) => (
-                    <label key={name} className="add-course__instructor-option">
-                      <input
-                        type="checkbox"
-                        checked={form.instructors.includes(name)}
-                        onChange={() => toggleInstructor(name)}
-                      />
-                      {name}
-                    </label>
-                  ))}
+                  {instructorIdsError && <span className="add-course__error">{instructorIdsError}</span>}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Actions */}
-          <button className="add-course__submit-btn" onClick={() => navigate('/courses')}>
+          {/* Yêu Cầu */}
+          <div className="add-course__section">
+            <div className="add-course__section-title">Yêu Cầu Học Viên</div>
+            <div className="add-course__form-body">
+              <div className="add-course__form-row">
+                <div className="add-course__form-group">
+                  <label>Độ tuổi tối thiểu</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.requirement.minAge}
+                    onChange={(e) => updateReq({ minAge: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="add-course__form-group">
+                  <label>Số bài thi yêu cầu</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.requirement.requiredExams}
+                    onChange={(e) => updateReq({ requiredExams: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <div className="add-course__form-row">
+                <div className="add-course__form-group">
+                  <label>Tỷ lệ tham dự (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={form.requirement.attendanceRate}
+                    onChange={(e) => updateReq({ attendanceRate: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="add-course__form-group">
+                  <label>Điểm đạt tối thiểu (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={form.requirement.minPassScore}
+                    onChange={(e) => updateReq({ minPassScore: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <div className="add-course__form-group">
+                <label>Điều kiện tiên quyết</label>
+                <textarea
+                  value={form.requirement.prerequisites}
+                  onChange={(e) => updateReq({ prerequisites: e.target.value })}
+                  placeholder="VD: Đã có GPLX hạng A1..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="add-course__sidebar">
+          <div className="add-course__sidebar-card">
+            <div className="add-course__sidebar-title">Xem Trước</div>
+            <div className="add-course__preview-badge">{form.licenseCategory || '—'}</div>
+            <div className="add-course__preview-title">{form.title || 'Tên khóa học'}</div>
+            <div className="add-course__preview-stats">
+              <div className="add-course__preview-stat">
+                <span>Thời lượng:</span>
+                <span>{form.duration || '—'}</span>
+              </div>
+              <div className="add-course__preview-stat">
+                <span>Học phí:</span>
+                <span>{form.tuitionFee.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="add-course__preview-stat">
+                <span>Sức chứa:</span>
+                <span>{form.capacity} học viên</span>
+              </div>
+            </div>
+          </div>
+
+          <button className="add-course__submit-btn" onClick={handleSubmit} disabled={loading}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />
             </svg>
-            {isEdit ? 'Lưu Thay Đổi' : 'Tạo Mới'}
+            {loading ? 'Đang lưu...' : isEdit ? 'Lưu Thay Đổi' : 'Tạo Mới'}
           </button>
-          <button className="add-course__cancel-btn" onClick={() => navigate('/courses')}>
+          <button className="add-course__cancel-btn" onClick={() => navigate(isEdit ? `/courses/${courseId}` : '/courses')} disabled={loading}>
             Hủy
           </button>
         </div>

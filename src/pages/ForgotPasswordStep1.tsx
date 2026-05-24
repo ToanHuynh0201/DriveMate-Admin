@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { validateEmail } from '../utils/authUtils';
 import { FormGroup } from '../components/ui/FormGroup';
@@ -8,31 +8,27 @@ import { Button } from '../components/ui/Button';
 import './ForgotPasswordPage.css';
 
 export function ForgotPasswordStep1() {
-  const navigate = useNavigate();
-  const { requestPasswordReset, clearError } = useAuthStore();
+  const { requestPasswordReset, loading, error: storeError, passwordResetEmailSent, clearError, clearPasswordResetStatus } = useAuthStore();
   const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   useEffect(() => {
-    return () => { clearError(); };
-  }, [clearError]);
+    return () => {
+      clearError();
+      clearPasswordResetStatus();
+    };
+  }, [clearError, clearPasswordResetStatus]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setLocalError('');
 
     if (!email.trim() || !validateEmail(email)) {
-      setError('Please enter a valid email address.');
+      setLocalError('Please enter a valid email address.');
       return;
     }
 
-    setLoading(true);
-    setTimeout(() => {
-      requestPasswordReset(email);
-      navigate('/forgot-password/step2');
-      setLoading(false);
-    }, 1000);
+    await requestPasswordReset(email);
   };
 
   return (
@@ -41,30 +37,41 @@ export function ForgotPasswordStep1() {
         <div className="forgot-password-header">
           <div className="logo-icon">🎓</div>
           <h2>Forgot Password</h2>
-          <p>Enter your email to receive a one-time password (OTP)</p>
+          <p>Enter your email to receive a password reset link.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="forgot-password-form">
-          <FormGroup label="Email">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="username@drivingschool.vn"
-              disabled={loading}
-            />
-          </FormGroup>
+        {passwordResetEmailSent ? (
+          <div className="forgot-password-form">
+            <div className="forgot-password-success">
+              ✓ If an account exists for <strong>{email}</strong>, a password reset link has been sent. Please check your inbox.
+            </div>
+            <Link to="/login" className="btn btn--secondary">
+              ← Back to Login
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="forgot-password-form">
+            <FormGroup label="Email">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="username@drivingschool.vn"
+                disabled={loading}
+              />
+            </FormGroup>
 
-          <ErrorMessage message={error} />
+            <ErrorMessage message={localError || storeError} />
 
-          <Button type="submit" fullWidth loading={loading} loadingLabel="Sending...">
-            Send OTP
-          </Button>
+            <Button type="submit" fullWidth loading={loading} loadingLabel="Sending...">
+              Send reset link
+            </Button>
 
-          <Link to="/login" className="btn btn--secondary">
-            ← Back to Login
-          </Link>
-        </form>
+            <Link to="/login" className="btn btn--secondary">
+              ← Back to Login
+            </Link>
+          </form>
+        )}
       </div>
     </div>
   );

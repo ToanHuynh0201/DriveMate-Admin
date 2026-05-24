@@ -1,27 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { EXAM_CONFIG_STATS, MOCK_EXAM_CONFIGS } from '../../data/examConfigData';
-import type { ExamConfig } from '../../types/exam-config.types';
-import { EXAM_CONFIG_STATUS_LABELS } from '../../types/exam-config.types';
+import { examService } from '@/services';
+import type {
+  ExamTemplate,
+  LicenseCategory,
+} from '@/types/exam-template.types';
+import { LICENSE_CATEGORIES } from '@/types/exam-template.types';
 import './ExamConfigManagementPage.css';
 
+const PAGE_SIZE = 50;
+
+interface Filters {
+  licenseCategory: LicenseCategory | '';
+  isActive: '' | 'true' | 'false';
+}
+
 function ExamConfigCard({
-  config,
+  template,
   onEdit,
   onView,
+  onDelete,
+  deleting,
 }: {
-  config: ExamConfig;
+  template: ExamTemplate;
   onEdit: (id: string) => void;
-  onView: (config: ExamConfig) => void;
+  onView: (template: ExamTemplate) => void;
+  onDelete: (template: ExamTemplate) => void;
+  deleting: boolean;
 }) {
+  const statusKey = template.isActive ? 'active' : 'inactive';
+  const statusLabel = template.isActive ? 'Đang áp dụng' : 'Ngừng áp dụng';
+
   return (
     <div className="ec-card">
       <div className="ec-card__top">
-        <div className="ec-card__badge">{config.licenseClass}</div>
+        <div className="ec-card__badge">{template.licenseCategory}</div>
         <div className="ec-card__info">
-          <div className="ec-card__class-name">Hạng {config.licenseClass}</div>
-          <span className={`ec-card__status ec-card__status--${config.status}`}>
-            {EXAM_CONFIG_STATUS_LABELS[config.status]}
+          <div className="ec-card__class-name">{template.name}</div>
+          <span className={`ec-card__status ec-card__status--${statusKey}`}>
+            {statusLabel}
           </span>
         </div>
       </div>
@@ -29,37 +46,33 @@ function ExamConfigCard({
       <div className="ec-card__stats">
         <div className="ec-card__stat-row">
           <span className="ec-card__stat-label">Tổng số câu:</span>
-          <span className="ec-card__stat-value">{config.totalQuestions} câu</span>
-        </div>
-        <div className="ec-card__stat-row">
-          <span className="ec-card__stat-label">Câu điểm liệt:</span>
-          <span className="ec-card__stat-value ec-card__stat-value--red">{config.criticalQuestions} câu</span>
-        </div>
-        <div className="ec-card__stat-row">
-          <span className="ec-card__stat-label">Thời gian:</span>
-          <span className="ec-card__stat-value">{config.duration} phút</span>
+          <span className="ec-card__stat-value">{template.totalQuestions} câu</span>
         </div>
         <div className="ec-card__stat-row">
           <span className="ec-card__stat-label">Điểm chuẩn:</span>
           <span className="ec-card__stat-value ec-card__stat-value--orange">
-            {config.passingScore}/{config.totalQuestions}
+            {template.passingScore}/{template.totalQuestions}
           </span>
         </div>
         <div className="ec-card__stat-row">
-          <span className="ec-card__stat-label">Sai liệt tối đa:</span>
-          <span className="ec-card__stat-value ec-card__stat-value--red">{config.maxCriticalMistakes} câu</span>
+          <span className="ec-card__stat-label">Thời gian:</span>
+          <span className="ec-card__stat-value">{template.durationMinutes} phút</span>
+        </div>
+        <div className="ec-card__stat-row">
+          <span className="ec-card__stat-label">Phiên bản:</span>
+          <span className="ec-card__stat-value">v{template.version}</span>
         </div>
       </div>
 
       <div className="ec-card__actions">
-        <button className="ec-card__btn-edit" onClick={() => onEdit(config.id)}>
+        <button className="ec-card__btn-edit" onClick={() => onEdit(template.id)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
           </svg>
           Chỉnh Sửa
         </button>
-        <button className="ec-card__btn-view" onClick={() => onView(config)} title="Xem chi tiết">
+        <button className="ec-card__btn-view" onClick={() => onView(template)} title="Xem chi tiết">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
@@ -68,22 +81,42 @@ function ExamConfigCard({
             <polyline points="10 9 9 9 8 9" />
           </svg>
         </button>
+        <button
+          className="ec-card__btn-view"
+          onClick={() => onDelete(template)}
+          disabled={deleting}
+          title="Xóa">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+          </svg>
+        </button>
       </div>
     </div>
   );
 }
 
-function DetailModal({ config, onClose }: { config: ExamConfig; onClose: () => void }) {
+function DetailModal({
+  template,
+  onClose,
+}: {
+  template: ExamTemplate;
+  onClose: () => void;
+}) {
+  const statusKey = template.isActive ? 'active' : 'inactive';
+  const statusLabel = template.isActive ? 'Đang áp dụng' : 'Ngừng áp dụng';
+
   return (
     <div className="ec-modal-overlay" onClick={onClose}>
       <div className="ec-modal" onClick={(e) => e.stopPropagation()}>
         <div className="ec-modal__header">
           <div className="ec-modal__title-row">
-            <div className="ec-modal__badge">{config.licenseClass}</div>
+            <div className="ec-modal__badge">{template.licenseCategory}</div>
             <div>
-              <h2>{config.name}</h2>
-              <span className={`ec-card__status ec-card__status--${config.status}`}>
-                {EXAM_CONFIG_STATUS_LABELS[config.status]}
+              <h2>{template.name}</h2>
+              <span className={`ec-card__status ec-card__status--${statusKey}`}>
+                {statusLabel}
               </span>
             </div>
           </div>
@@ -95,57 +128,37 @@ function DetailModal({ config, onClose }: { config: ExamConfig; onClose: () => v
           </button>
         </div>
 
-        {config.description && (
-          <p className="ec-modal__desc">{config.description}</p>
-        )}
-
         <div className="ec-modal__section-title">Thông Tin Đề Thi</div>
         <div className="ec-modal__grid">
           <div className="ec-modal__item">
             <span className="ec-modal__item-label">Tổng số câu</span>
-            <span className="ec-modal__item-value">{config.totalQuestions} câu</span>
-          </div>
-          <div className="ec-modal__item">
-            <span className="ec-modal__item-label">Câu điểm liệt</span>
-            <span className="ec-modal__item-value ec-modal__item-value--red">{config.criticalQuestions} câu</span>
-          </div>
-          <div className="ec-modal__item">
-            <span className="ec-modal__item-label">Thời gian làm bài</span>
-            <span className="ec-modal__item-value">{config.duration} phút</span>
+            <span className="ec-modal__item-value">{template.totalQuestions} câu</span>
           </div>
           <div className="ec-modal__item">
             <span className="ec-modal__item-label">Điểm chuẩn</span>
             <span className="ec-modal__item-value ec-modal__item-value--orange">
-              {config.passingScore}/{config.totalQuestions}
+              {template.passingScore}/{template.totalQuestions}
             </span>
           </div>
           <div className="ec-modal__item">
-            <span className="ec-modal__item-label">Sai liệt tối đa</span>
-            <span className="ec-modal__item-value ec-modal__item-value--red">{config.maxCriticalMistakes} câu</span>
+            <span className="ec-modal__item-label">Thời gian làm bài</span>
+            <span className="ec-modal__item-value">{template.durationMinutes} phút</span>
           </div>
           <div className="ec-modal__item">
-            <span className="ec-modal__item-label">Xáo trộn câu hỏi</span>
-            <span className="ec-modal__item-value">{config.shuffleQuestions ? 'Có' : 'Không'}</span>
+            <span className="ec-modal__item-label">Phiên bản</span>
+            <span className="ec-modal__item-value">v{template.version}</span>
           </div>
-        </div>
-
-        <div className="ec-modal__section-title">Phân Bố Câu Hỏi Theo Chủ Đề</div>
-        <div className="ec-modal__topics">
-          <div className="ec-modal__topic-row">
-            <span>Biển báo</span>
-            <span>{config.topicDistribution.bienBao} câu</span>
+          <div className="ec-modal__item">
+            <span className="ec-modal__item-label">Ngày tạo</span>
+            <span className="ec-modal__item-value">
+              {new Date(template.createdAt).toLocaleDateString('vi-VN')}
+            </span>
           </div>
-          <div className="ec-modal__topic-row">
-            <span>Luật GT</span>
-            <span>{config.topicDistribution.luatGT} câu</span>
-          </div>
-          <div className="ec-modal__topic-row">
-            <span>Kỹ thuật</span>
-            <span>{config.topicDistribution.kyThuat} câu</span>
-          </div>
-          <div className="ec-modal__topic-row">
-            <span>Tình huống</span>
-            <span>{config.topicDistribution.tinhHuong} câu</span>
+          <div className="ec-modal__item">
+            <span className="ec-modal__item-label">Cập nhật cuối</span>
+            <span className="ec-modal__item-value">
+              {new Date(template.updatedAt).toLocaleDateString('vi-VN')}
+            </span>
           </div>
         </div>
       </div>
@@ -155,17 +168,78 @@ function DetailModal({ config, onClose }: { config: ExamConfig; onClose: () => v
 
 export default function ExamConfigManagementPage() {
   const navigate = useNavigate();
-  const [selectedConfig, setSelectedConfig] = useState<ExamConfig | null>(null);
+  const [templates, setTemplates] = useState<ExamTemplate[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<ExamTemplate | null>(null);
+  const [filters, setFilters] = useState<Filters>({
+    licenseCategory: '',
+    isActive: '',
+  });
+
+  const fetchTemplates = () => {
+    setLoading(true);
+    setError('');
+    examService
+      .list({
+        page: 1,
+        size: PAGE_SIZE,
+        licenseCategory: filters.licenseCategory || undefined,
+        isActive:
+          filters.isActive === ''
+            ? undefined
+            : filters.isActive === 'true',
+      })
+      .then((res) => {
+        if (res.success) {
+          setTemplates(res.data.items);
+          setTotal(res.data.total);
+        } else {
+          setError(res.error);
+          setTemplates([]);
+        }
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.licenseCategory, filters.isActive]);
+
+  const handleDelete = async (template: ExamTemplate) => {
+    if (
+      !window.confirm(
+        `Xóa đề thi "${template.name}"? Thao tác này soft delete, không thể hoàn tác qua UI.`,
+      )
+    )
+      return;
+    setDeletingId(template.id);
+    const res = await examService.softDelete(template.id, template.version);
+    setDeletingId(null);
+    if (res.success) {
+      fetchTemplates();
+    } else {
+      setError(res.error);
+    }
+  };
+
+  const activeCount = templates.filter((t) => t.isActive).length;
+  const inactiveCount = templates.filter((t) => !t.isActive).length;
 
   return (
     <div className="ec-management">
       <div className="ec-management__header">
         <div>
           <h1>Cấu Hình Đề Thi</h1>
-          <p>Quản lý cấu hình đề thi theo từng hạng bằng lái</p>
+          <p>Quản lý template đề thi theo từng hạng bằng lái</p>
         </div>
-        <button className="ec-management__add-btn" onClick={() => navigate('/exam-config/new')}>
-          + Thêm Cấu Hình
+        <button
+          className="ec-management__add-btn"
+          onClick={() => navigate('/exam-config/new')}>
+          + Thêm Đề Thi
         </button>
       </div>
 
@@ -178,23 +252,76 @@ export default function ExamConfigManagementPage() {
           </svg>
         </div>
         <div>
-          <div className="ec-info-card__title">Thông Tin Cấu Hình Đề Thi</div>
+          <div className="ec-info-card__title">Template Đề Thi</div>
           <p className="ec-info-card__desc">
-            Mỗi hạng bằng lái có cấu hình đề thi riêng biệt bao gồm: số lượng câu hỏi, số câu liệt, thời gian làm bài, điểm chuẩn và số câu liệt tối đa được sai.
+            Mỗi template định nghĩa cấu trúc đề thi gồm: số câu hỏi, điểm
+            chuẩn, thời gian. Khi học viên bắt đầu thi, hệ thống sẽ lấy ngẫu
+            nhiên câu hỏi từ ngân hàng theo cấu hình.
           </p>
         </div>
       </div>
 
-      <div className="ec-cards-grid">
-        {MOCK_EXAM_CONFIGS.map((config) => (
-          <ExamConfigCard
-            key={config.id}
-            config={config}
-            onEdit={(id) => navigate(`/exam-config/${id}/edit`)}
-            onView={setSelectedConfig}
-          />
-        ))}
+      <div
+        className="ec-filters"
+        style={{
+          display: 'flex',
+          gap: 12,
+          marginBottom: 16,
+          flexWrap: 'wrap',
+        }}>
+        <select
+          value={filters.licenseCategory}
+          onChange={(e) =>
+            setFilters((f) => ({
+              ...f,
+              licenseCategory: e.target.value as LicenseCategory | '',
+            }))
+          }>
+          <option value="">Tất cả hạng bằng</option>
+          {LICENSE_CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filters.isActive}
+          onChange={(e) =>
+            setFilters((f) => ({
+              ...f,
+              isActive: e.target.value as Filters['isActive'],
+            }))
+          }>
+          <option value="">Tất cả trạng thái</option>
+          <option value="true">Đang áp dụng</option>
+          <option value="false">Ngừng áp dụng</option>
+        </select>
       </div>
+
+      {error && (
+        <div style={{ color: '#ef4444', padding: 16 }}>Lỗi: {error}</div>
+      )}
+
+      {loading ? (
+        <div style={{ padding: 24 }}>Đang tải...</div>
+      ) : templates.length === 0 ? (
+        <div style={{ padding: 24, color: '#94a3b8' }}>
+          Chưa có template đề thi nào. Nhấn "+ Thêm Đề Thi" để tạo mới.
+        </div>
+      ) : (
+        <div className="ec-cards-grid">
+          {templates.map((template) => (
+            <ExamConfigCard
+              key={template.id}
+              template={template}
+              onEdit={(id) => navigate(`/exam-config/${id}/edit`)}
+              onView={setSelected}
+              onDelete={handleDelete}
+              deleting={deletingId === template.id}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="ec-stats-bar">
         <div className="ec-stats-bar__item">
@@ -205,8 +332,8 @@ export default function ExamConfigManagementPage() {
             </svg>
           </div>
           <div>
-            <div className="ec-stats-bar__label">Đề thi đã tạo</div>
-            <div className="ec-stats-bar__value">{EXAM_CONFIG_STATS.totalExams.toLocaleString('vi-VN')}</div>
+            <div className="ec-stats-bar__label">Template (trang)</div>
+            <div className="ec-stats-bar__value">{total.toLocaleString('vi-VN')}</div>
           </div>
         </div>
         <div className="ec-stats-bar__item">
@@ -217,8 +344,8 @@ export default function ExamConfigManagementPage() {
             </svg>
           </div>
           <div>
-            <div className="ec-stats-bar__label">Cấu hình đang dùng</div>
-            <div className="ec-stats-bar__value">{EXAM_CONFIG_STATS.activeConfigs}</div>
+            <div className="ec-stats-bar__label">Đang áp dụng</div>
+            <div className="ec-stats-bar__value">{activeCount}</div>
           </div>
         </div>
         <div className="ec-stats-bar__item">
@@ -231,14 +358,14 @@ export default function ExamConfigManagementPage() {
             </svg>
           </div>
           <div>
-            <div className="ec-stats-bar__label">Bài thi đã làm</div>
-            <div className="ec-stats-bar__value">{EXAM_CONFIG_STATS.totalAttempts.toLocaleString('vi-VN')}</div>
+            <div className="ec-stats-bar__label">Ngừng áp dụng</div>
+            <div className="ec-stats-bar__value">{inactiveCount}</div>
           </div>
         </div>
       </div>
 
-      {selectedConfig && (
-        <DetailModal config={selectedConfig} onClose={() => setSelectedConfig(null)} />
+      {selected && (
+        <DetailModal template={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );

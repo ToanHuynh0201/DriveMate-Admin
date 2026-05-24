@@ -1,73 +1,89 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import type { UserFormData, LicenseClass } from '../../types/user.types';
-import { LICENSE_CLASSES } from '../../types/user.types';
-import { validateEmail } from '../../utils/authUtils';
-import Toast from '../../components/ui/Toast';
-import './AddUserPage.css';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import type { UserRole } from "@/types/identity.types";
+import type { Gender, LicenseTier } from "@/types/user-profile.types";
+import { LICENSE_TIERS } from "@/types/user-profile.types";
+import { identityService, userService } from "@/services";
+import { ImageUploader } from "@/components/common/ImageUploader";
+import type { MediaReference } from "@/types/media.types";
+import { validateEmail } from "../../utils/authUtils";
+import Toast from "../../components/ui/Toast";
+import "./AddUserPage.css";
 
-const EMPTY_FORM: UserFormData = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  password: '',
-  role: '',
-  status: '',
-  startDate: '',
-  licenseClasses: [],
+interface FormState {
+  fullName: string;
+  email: string;
+  temporaryPassword: string;
+  role: UserRole | "";
+  phoneNumber: string;
+  dateOfBirth: string;
+  gender: Gender | "";
+  address: string;
+  licenseTier: LicenseTier | "";
+}
+
+const EMPTY_FORM: FormState = {
+  fullName: "",
+  email: "",
+  temporaryPassword: "",
+  role: "",
+  phoneNumber: "",
+  dateOfBirth: "",
+  gender: "",
+  address: "",
+  licenseTier: "",
 };
 
 interface FormErrors {
-  firstName?: string;
-  lastName?: string;
+  fullName?: string;
   email?: string;
-  phone?: string;
-  password?: string;
+  temporaryPassword?: string;
   role?: string;
-  status?: string;
+}
+
+interface ToastState {
+  message: string;
+  type: "success" | "error";
+  visible: boolean;
 }
 
 export default function AddUserPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState<UserFormData>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [avatar, setAvatar] = useState<MediaReference | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState(false);
+  const [toast, setToast] = useState<ToastState>({
+    message: "",
+    type: "success",
+    visible: false,
+  });
 
-  const update = (field: keyof UserFormData, value: string) => {
+  const update = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
-  const toggleLicense = (cls: LicenseClass) => {
-    setForm((prev) => ({
-      ...prev,
-      licenseClasses: prev.licenseClasses.includes(cls)
-        ? prev.licenseClasses.filter((c) => c !== cls)
-        : [...prev.licenseClasses, cls],
-    }));
+  const showToast = (message: string, type: ToastState["type"]) => {
+    setToast({ message, type, visible: true });
   };
 
   const validate = (): boolean => {
     const next: FormErrors = {};
-    if (!form.firstName.trim()) next.firstName = 'Vui lòng nhập họ và tên đệm.';
-    if (!form.lastName.trim()) next.lastName = 'Vui lòng nhập tên.';
+    if (!form.fullName.trim()) next.fullName = "Vui lòng nhập họ và tên.";
     if (!form.email.trim()) {
-      next.email = 'Vui lòng nhập email.';
+      next.email = "Vui lòng nhập email.";
     } else if (!validateEmail(form.email)) {
-      next.email = 'Email không hợp lệ.';
+      next.email = "Email không hợp lệ.";
     }
-    if (!form.phone.trim()) next.phone = 'Vui lòng nhập số điện thoại.';
-    if (!form.password) {
-      next.password = 'Vui lòng nhập mật khẩu.';
-    } else if (form.password.length < 6) {
-      next.password = 'Mật khẩu tối thiểu 6 ký tự.';
+    if (!form.temporaryPassword) {
+      next.temporaryPassword = "Vui lòng nhập mật khẩu tạm thời.";
+    } else if (form.temporaryPassword.length < 8) {
+      next.temporaryPassword = "Mật khẩu tối thiểu 8 ký tự.";
     }
-    if (!form.role) next.role = 'Vui lòng chọn vai trò.';
-    if (!form.status) next.status = 'Vui lòng chọn trạng thái.';
+    if (!form.role) next.role = "Vui lòng chọn vai trò.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -75,22 +91,92 @@ export default function AddUserPage() {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
-    await new Promise((res) => setTimeout(res, 800));
+
+    // 1. Create identity user (Keycloak account).
+    const created = await identityService.create({
+      email: form.email.trim(),
+      fullName: form.fullName.trim(),
+      role: form.role as UserRole,
+      temporaryPassword: form.temporaryPassword,
+    });
+
+    if (!created.success) {
+      setLoading(false);
+      showToast(created.error, "error");
+      return;
+    }
+
+    const userId = created.data.userId;
+
+    // 2. Wait for user-service to consume the event and create the profile.
+    const profile = await userService.getByIdWithRetry(userId);
+    if (!profile.success) {
+      setLoading(false);
+      showToast(
+        "Đã tạo account nhưng profile chưa đồng bộ. Vui lòng làm mới danh sách sau ít phút.",
+        "error",
+      );
+      setTimeout(() => navigate("/users"), 2000);
+      return;
+    }
+
+    // 3. Patch optional profile fields if user filled any.
+    const hasExtra =
+      form.phoneNumber.trim() ||
+      form.dateOfBirth ||
+      form.gender ||
+      form.address.trim() ||
+      avatar !== null;
+    if (hasExtra) {
+      const updateResult = await userService.update(userId, {
+        phoneNumber: form.phoneNumber.trim() || undefined,
+        dateOfBirth: form.dateOfBirth || undefined,
+        gender: form.gender || undefined,
+        address: form.address.trim() || undefined,
+        avatarUrl: avatar?.publicUrl,
+        mediaFileId: avatar?.mediaFileId,
+      });
+      if (!updateResult.success) {
+        setLoading(false);
+        showToast(
+          `Account đã tạo nhưng cập nhật profile lỗi: ${updateResult.error}`,
+          "error",
+        );
+        return;
+      }
+    }
+
+    // 4. Assign license tier when student.
+    if (form.role === "STUDENT" && form.licenseTier) {
+      const licenseResult = await userService.assignLicenseTier(
+        userId,
+        form.licenseTier,
+      );
+      if (!licenseResult.success) {
+        setLoading(false);
+        showToast(
+          `Đã tạo user nhưng gán hạng bằng lái lỗi: ${licenseResult.error}`,
+          "error",
+        );
+        return;
+      }
+    }
+
     setLoading(false);
-    setToast(true);
-    setTimeout(() => navigate('/users'), 1500);
+    showToast("Tạo người dùng thành công!", "success");
+    setTimeout(() => navigate("/users"), 1500);
   };
 
   return (
     <div className="add-user">
       <Toast
-        message="Tạo người dùng thành công!"
-        type="success"
-        visible={toast}
-        onClose={() => setToast(false)}
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onClose={() => setToast((prev) => ({ ...prev, visible: false }))}
       />
 
-      <button className="add-user__back" onClick={() => navigate('/users')}>
+      <button className="add-user__back" onClick={() => navigate("/users")}>
         ← Quay lại
       </button>
 
@@ -100,146 +186,175 @@ export default function AddUserPage() {
       </div>
 
       <div className="add-user__body">
-        {/* Left column */}
         <div className="add-user__left">
-          {/* Basic Info */}
           <div className="add-user__card">
             <h2 className="add-user__card-title">Thông Tin Cơ Bản</h2>
 
-            <div className="add-user__row">
-              <div className="add-user__field">
-                <label className="add-user__label">Họ và tên đệm</label>
-                <input
-                  className={`add-user__input${errors.firstName ? ' add-user__input--error' : ''}`}
-                  placeholder="Nguyễn Văn"
-                  value={form.firstName}
-                  onChange={(e) => update('firstName', e.target.value)}
-                />
-                {errors.firstName && <span className="add-user__error">{errors.firstName}</span>}
-              </div>
-              <div className="add-user__field">
-                <label className="add-user__label">Tên</label>
-                <input
-                  className={`add-user__input${errors.lastName ? ' add-user__input--error' : ''}`}
-                  placeholder="A"
-                  value={form.lastName}
-                  onChange={(e) => update('lastName', e.target.value)}
-                />
-                {errors.lastName && <span className="add-user__error">{errors.lastName}</span>}
-              </div>
+            <div className="add-user__field">
+              <label className="add-user__label">Họ và tên</label>
+              <input
+                className={`add-user__input${errors.fullName ? " add-user__input--error" : ""}`}
+                placeholder="Nguyễn Văn A"
+                value={form.fullName}
+                onChange={(e) => update("fullName", e.target.value)}
+              />
+              {errors.fullName && (
+                <span className="add-user__error">{errors.fullName}</span>
+              )}
             </div>
 
             <div className="add-user__field">
               <label className="add-user__label">Email</label>
               <input
-                className={`add-user__input${errors.email ? ' add-user__input--error' : ''}`}
+                className={`add-user__input${errors.email ? " add-user__input--error" : ""}`}
                 type="email"
                 placeholder="nguyenvana@email.com"
                 value={form.email}
-                onChange={(e) => update('email', e.target.value)}
+                onChange={(e) => update("email", e.target.value)}
               />
-              {errors.email && <span className="add-user__error">{errors.email}</span>}
+              {errors.email && (
+                <span className="add-user__error">{errors.email}</span>
+              )}
+            </div>
+
+            <div className="add-user__field">
+              <label className="add-user__label">Mật khẩu tạm thời</label>
+              <input
+                className={`add-user__input${errors.temporaryPassword ? " add-user__input--error" : ""}`}
+                type="password"
+                placeholder="Tối thiểu 8 ký tự"
+                value={form.temporaryPassword}
+                onChange={(e) => update("temporaryPassword", e.target.value)}
+              />
+              {errors.temporaryPassword && (
+                <span className="add-user__error">
+                  {errors.temporaryPassword}
+                </span>
+              )}
             </div>
 
             <div className="add-user__field">
               <label className="add-user__label">Số điện thoại</label>
               <input
-                className={`add-user__input${errors.phone ? ' add-user__input--error' : ''}`}
+                className="add-user__input"
                 placeholder="0901234567"
-                value={form.phone}
-                onChange={(e) => update('phone', e.target.value)}
+                value={form.phoneNumber}
+                onChange={(e) => update("phoneNumber", e.target.value)}
               />
-              {errors.phone && <span className="add-user__error">{errors.phone}</span>}
+            </div>
+
+            <div className="add-user__row">
+              <div className="add-user__field">
+                <label className="add-user__label">Ngày sinh</label>
+                <input
+                  className="add-user__input"
+                  type="date"
+                  value={form.dateOfBirth}
+                  onChange={(e) => update("dateOfBirth", e.target.value)}
+                />
+              </div>
+              <div className="add-user__field">
+                <label className="add-user__label">Giới tính</label>
+                <select
+                  className="add-user__select"
+                  value={form.gender}
+                  onChange={(e) =>
+                    update("gender", e.target.value as Gender | "")
+                  }>
+                  <option value="">Chọn giới tính</option>
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                  <option value="OTHER">Khác</option>
+                </select>
+              </div>
             </div>
 
             <div className="add-user__field">
-              <label className="add-user__label">Mật khẩu</label>
+              <label className="add-user__label">Địa chỉ</label>
               <input
-                className={`add-user__input${errors.password ? ' add-user__input--error' : ''}`}
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={(e) => update('password', e.target.value)}
+                className="add-user__input"
+                placeholder="TP.HCM"
+                value={form.address}
+                onChange={(e) => update("address", e.target.value)}
               />
-              {errors.password && <span className="add-user__error">{errors.password}</span>}
             </div>
           </div>
 
-          {/* License Classes */}
-          <div className="add-user__card">
-            <h2 className="add-user__card-title">Gán Hạng Bằng Lái</h2>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
-              Chọn các hạng bằng lái mà người dùng này có thể giảng dạy
-            </p>
-            <div className="add-user__license-grid">
-              {LICENSE_CLASSES.map((cls) => (
-                <label key={cls} className="add-user__license-item">
-                  <input
-                    type="checkbox"
-                    checked={form.licenseClasses.includes(cls)}
-                    onChange={() => toggleLicense(cls)}
-                  />
-                  Hạng {cls}
-                </label>
-              ))}
+          {form.role === "STUDENT" && (
+            <div className="add-user__card">
+              <h2 className="add-user__card-title">Hạng Bằng Lái</h2>
+              <p
+                style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
+                Chỉ áp dụng cho học viên
+              </p>
+              <div className="add-user__field">
+                <label className="add-user__label">Hạng bằng lái</label>
+                <select
+                  className="add-user__select"
+                  value={form.licenseTier}
+                  onChange={(e) =>
+                    update(
+                      "licenseTier",
+                      e.target.value as LicenseTier | "",
+                    )
+                  }>
+                  <option value="">Chọn hạng</option>
+                  {LICENSE_TIERS.map((tier) => (
+                    <option key={tier} value={tier}>
+                      Hạng {tier}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Right column */}
         <div className="add-user__right">
           <div className="add-user__card">
-            <h2 className="add-user__card-title">Thông Tin Bổ Sung</h2>
+            <h2 className="add-user__card-title">Ảnh Đại Diện</h2>
+            <ImageUploader
+              value={avatar}
+              onChange={setAvatar}
+              shape="circle"
+              helpText="Tùy chọn — JPG, PNG, WebP (tối đa 10MB)"
+            />
+          </div>
+
+          <div className="add-user__card">
+            <h2 className="add-user__card-title">Vai Trò</h2>
 
             <div className="add-user__field">
               <label className="add-user__label">Vai trò</label>
               <select
-                className={`add-user__select${errors.role ? ' add-user__select--error' : ''}`}
+                className={`add-user__select${errors.role ? " add-user__select--error" : ""}`}
                 value={form.role}
-                onChange={(e) => update('role', e.target.value)}
-              >
+                onChange={(e) =>
+                  update("role", e.target.value as UserRole | "")
+                }>
                 <option value="">Chọn vai trò</option>
-                <option value="admin">Admin</option>
-                <option value="center_manager">Center Manager</option>
-                <option value="instructor">Giảng viên</option>
+                <option value="ADMIN">Admin</option>
+                <option value="CENTER_MANAGER">Center Manager</option>
+                <option value="INSTRUCTOR">Giảng viên</option>
+                <option value="STUDENT">Học viên</option>
               </select>
-              {errors.role && <span className="add-user__error">{errors.role}</span>}
-            </div>
-
-            <div className="add-user__field">
-              <label className="add-user__label">Trạng thái</label>
-              <select
-                className={`add-user__select${errors.status ? ' add-user__select--error' : ''}`}
-                value={form.status}
-                onChange={(e) => update('status', e.target.value)}
-              >
-                <option value="">Chọn trạng thái</option>
-                <option value="active">Hoạt động</option>
-                <option value="inactive">Tạm dừng</option>
-              </select>
-              {errors.status && <span className="add-user__error">{errors.status}</span>}
-            </div>
-
-            <div className="add-user__field">
-              <label className="add-user__label">Ngày vào làm</label>
-              <input
-                className="add-user__input"
-                type="date"
-                value={form.startDate}
-                onChange={(e) => update('startDate', e.target.value)}
-              />
+              {errors.role && (
+                <span className="add-user__error">{errors.role}</span>
+              )}
             </div>
           </div>
 
           <button
             className="add-user__submit-btn"
             onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? '⏳ Đang tạo...' : '💾 Tạo Mới'}
+            disabled={loading}>
+            {loading ? "⏳ Đang tạo..." : "💾 Tạo Mới"}
           </button>
 
-          <button className="add-user__cancel-btn" onClick={() => navigate('/users')}>
+          <button
+            className="add-user__cancel-btn"
+            onClick={() => navigate("/users")}
+            disabled={loading}>
             Hủy
           </button>
         </div>
