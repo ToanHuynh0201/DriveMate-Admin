@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { courseService } from '@/services';
+import { courseService, identityService } from '@/services';
+import type { IdentityUser } from '@/types/identity.types';
 import type { CourseFormData, LicenseCategory } from '../../types/course.types';
 import { COURSE_LICENSE_CATEGORIES } from '../../types/course.types';
 import './AddCoursePage.css';
@@ -22,30 +23,14 @@ const DEFAULT_FORM: CourseFormData = {
   },
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function parseInstructorIds(raw: string): { ids: string[]; invalid: string[] } {
-  const tokens = raw
-    .split(/[\s,;\n]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const ids: string[] = [];
-  const invalid: string[] = [];
-  for (const token of tokens) {
-    if (UUID_RE.test(token)) ids.push(token);
-    else invalid.push(token);
-  }
-  return { ids, invalid };
-}
-
 export default function AddCoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(courseId);
 
   const [form, setForm] = useState<CourseFormData>(DEFAULT_FORM);
-  const [instructorIdsRaw, setInstructorIdsRaw] = useState('');
-  const [instructorIdsError, setInstructorIdsError] = useState('');
+  const [instructors, setInstructors] = useState<IdentityUser[]>([]);
+  const [instructorSearch, setInstructorSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -74,12 +59,17 @@ export default function AddCoursePage() {
             requiredExams: c.requirement?.requiredExams ?? 2,
           },
         });
-        setInstructorIdsRaw((c.instructorIds ?? []).join('\n'));
       } else {
         setSubmitError(res.error);
       }
     });
   }, [isEdit, courseId]);
+
+  useEffect(() => {
+    identityService.list({ role: 'INSTRUCTOR', size: 100 }).then((res) => {
+      if (res.success) setInstructors(res.data.items);
+    });
+  }, []);
 
   const update = (patch: Partial<CourseFormData>) => setForm((f) => ({ ...f, ...patch }));
   const updateReq = (patch: Partial<CourseFormData['requirement']>) =>
@@ -95,13 +85,6 @@ export default function AddCoursePage() {
 
   const handleSubmit = async () => {
     if (!validate()) return;
-
-    const { ids: parsedInstructorIds, invalid } = parseInstructorIds(instructorIdsRaw);
-    if (invalid.length > 0) {
-      setInstructorIdsError(`UUID không hợp lệ: ${invalid.join(', ')}`);
-      return;
-    }
-    setInstructorIdsError('');
 
     setLoading(true);
     setSubmitError('');
@@ -130,7 +113,7 @@ export default function AddCoursePage() {
           duration: form.duration.trim() || undefined,
           tuitionFee: form.tuitionFee,
           capacity: form.capacity || undefined,
-          instructorIds: parsedInstructorIds.length > 0 ? parsedInstructorIds : undefined,
+          instructorIds: form.instructorIds.length > 0 ? form.instructorIds : undefined,
           requirement: req,
         });
 
@@ -240,25 +223,60 @@ export default function AddCoursePage() {
                 />
               </div>
 
-              {!isEdit && (
-                <div className="add-course__form-group">
-                  <label>Giảng viên phụ trách (UUID)</label>
-                  <textarea
-                    value={instructorIdsRaw}
-                    onChange={(e) => {
-                      setInstructorIdsRaw(e.target.value);
-                      setInstructorIdsError('');
-                    }}
-                    placeholder="Mỗi UUID 1 dòng hoặc cách nhau bằng dấu phẩy. VD: 550e8400-e29b-41d4-a716-446655440000"
-                    rows={3}
-                    className={instructorIdsError ? 'add-course__input--error' : ''}
-                  />
-                  <span className="add-course__hint">
-                    Tạm thời nhập UUID thủ công. Sẽ thay bằng multi-select khi user service được nối.
-                  </span>
-                  {instructorIdsError && <span className="add-course__error">{instructorIdsError}</span>}
+              <div className="add-course__form-group">
+                  <label>Giảng viên phụ trách</label>
+                  {isEdit ? (
+                    <div className="add-course__instructor-tags">
+                      {form.instructorIds.length === 0 ? (
+                        <span className="add-course__hint">Không có giảng viên nào được gán.</span>
+                      ) : (
+                        form.instructorIds.map((id) => {
+                          const found = instructors.find((i) => i.userId === id);
+                          return (
+                            <span key={id} className="add-course__instructor-tag">
+                              {found ? found.fullName : id.slice(0, 8)}
+                            </span>
+                          );
+                        })
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        className="add-course__instructor-search"
+                        placeholder="Tìm theo tên hoặc email..."
+                        value={instructorSearch}
+                        onChange={(e) => setInstructorSearch(e.target.value)}
+                      />
+                      <div className="add-course__instructor-list">
+                        {instructors
+                          .filter((i) => {
+                            const q = instructorSearch.toLowerCase();
+                            return !q || i.fullName.toLowerCase().includes(q) || i.email.toLowerCase().includes(q);
+                          })
+                          .map((i) => (
+                            <label key={i.userId} className="add-course__instructor-option">
+                              <input
+                                type="checkbox"
+                                checked={form.instructorIds.includes(i.userId)}
+                                onChange={(e) => {
+                                  const next = e.target.checked
+                                    ? [...form.instructorIds, i.userId]
+                                    : form.instructorIds.filter((id) => id !== i.userId);
+                                  update({ instructorIds: next });
+                                }}
+                              />
+                              <span className="add-course__instructor-name">{i.fullName}</span>
+                              <span className="add-course__instructor-email">{i.email}</span>
+                            </label>
+                          ))}
+                        {instructors.length === 0 && (
+                          <span className="add-course__hint">Đang tải danh sách giảng viên...</span>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
             </div>
           </div>
 

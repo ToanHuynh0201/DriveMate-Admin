@@ -97,8 +97,11 @@ function FilterBar({
 				{STUDENT_STATUS_OPTIONS.map((item) => (
 					<option
 						key={item.value}
-						value={item.value}>
-						{item.label}
+						value={item.value}
+						disabled={item.value === 'warning' || item.value === 'completed'}>
+						{item.value === 'warning' || item.value === 'completed'
+							? `${item.label} (chưa hỗ trợ)`
+							: item.label}
 					</option>
 				))}
 			</select>
