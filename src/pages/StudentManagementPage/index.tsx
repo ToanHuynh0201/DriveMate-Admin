@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { userService } from "@/services";
+import { useMediaUrl } from "@/hooks/useMediaUrl";
 import type { LicenseTier } from "@/types/user-profile.types";
 import {
 	STUDENT_LICENSE_TIERS,
@@ -152,15 +153,7 @@ function StudentTable({
 								onClick={() => onOpen(student.id)}>
 								<td>
 									<div className="student-table__name">
-										<div
-											className="student-avatar"
-											style={{
-												background: studentAvatarColor(
-													student.id,
-												),
-											}}>
-											{studentInitials(student.fullName)}
-										</div>
+										<StudentAvatar student={student} />
 										<div>
 											<div className="student-table__fullname">
 												{student.fullName}
@@ -210,6 +203,27 @@ function StudentTable({
 					})}
 				</tbody>
 			</table>
+		</div>
+	);
+}
+
+function StudentAvatar({ student }: { student: Student }) {
+	const { url } = useMediaUrl(student.mediaFileId);
+	const imageUrl = url || student.avatarUrl;
+
+	return (
+		<div
+			className="student-avatar"
+			style={
+				imageUrl
+					? undefined
+					: { background: studentAvatarColor(student.id) }
+			}>
+			{imageUrl ? (
+				<img src={imageUrl} alt={student.fullName} />
+			) : (
+				studentInitials(student.fullName)
+			)}
 		</div>
 	);
 }

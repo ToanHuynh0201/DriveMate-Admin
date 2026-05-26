@@ -138,6 +138,27 @@
   background: #3a3a3a;
 }
 
+.user-filters__toggle {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.user-filters__toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: #fdb913;
+}
+
 /* ===== Table ===== */
 .user-table-wrapper {
   background: #242424;
@@ -180,6 +201,10 @@
   background: #2a2a2a;
 }
 
+.user-table__row--deleted {
+  opacity: 0.72;
+}
+
 .user-table__name-cell {
   display: flex;
   align-items: center;
@@ -210,6 +235,19 @@
 
 .user-table__date {
   color: #aaa;
+  white-space: nowrap;
+}
+
+.user-table__status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.user-table__status-meta {
+  color: #777;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -263,6 +301,12 @@
   border: 1px solid rgba(46, 204, 113, 0.3);
 }
 
+.badge--student {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
 .badge--active {
   background: rgba(46, 204, 113, 0.15);
   color: #2ecc71;
@@ -273,6 +317,12 @@
   background: rgba(136, 136, 136, 0.15);
   color: #888;
   border: 1px solid rgba(136, 136, 136, 0.3);
+}
+
+.badge--deleted {
+  background: rgba(229, 62, 62, 0.14);
+  color: #fc8181;
+  border: 1px solid rgba(229, 62, 62, 0.32);
 }
 
 .badge--license {
@@ -354,6 +404,33 @@
   color: #f0f0f0;
 }
 
+.user-modal__box--wide {
+  width: 820px;
+  max-height: 90vh;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a #1e1e1e;
+}
+
+.user-modal__box--wide::-webkit-scrollbar {
+  width: 10px;
+}
+
+.user-modal__box--wide::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 999px;
+}
+
+.user-modal__box--wide::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border: 2px solid #1e1e1e;
+  border-radius: 999px;
+}
+
+.user-modal__box--wide::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
 .user-modal__title {
   font-size: 15px;
   font-weight: 600;
@@ -371,6 +448,51 @@
   border: 1px solid rgba(229, 62, 62, 0.3);
 }
 
+.user-modal__loading {
+  color: #fdb913;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.user-modal__section {
+  padding: 16px 0;
+  border-top: 1px solid #303030;
+}
+
+.user-modal__section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.user-modal__section h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #fdb913;
+  margin-bottom: 14px;
+}
+
+.user-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.user-modal__profile-layout {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.user-modal__avatar {
+  min-width: 0;
+}
+
+.user-modal__profile-fields {
+  min-width: 0;
+}
+
 .user-modal__field {
   margin-bottom: 16px;
 }
@@ -385,7 +507,8 @@
 }
 
 .user-modal__field input,
-.user-modal__field select {
+.user-modal__field select,
+.user-modal__field textarea {
   width: 100%;
   padding: 9px 12px;
   background: #2a2a2a;
@@ -396,8 +519,15 @@
   box-sizing: border-box;
 }
 
+.user-modal__field textarea {
+  min-height: 84px;
+  resize: vertical;
+  font-family: inherit;
+}
+
 .user-modal__field input:focus,
-.user-modal__field select:focus {
+.user-modal__field select:focus,
+.user-modal__field textarea:focus {
   outline: none;
   border-color: #555;
 }
@@ -442,4 +572,11 @@
 .user-modal__btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .user-modal__grid,
+  .user-modal__profile-layout {
+    grid-template-columns: 1fr;
+  }
 }

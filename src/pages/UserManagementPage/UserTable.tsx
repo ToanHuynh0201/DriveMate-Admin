@@ -41,7 +41,8 @@ function getAvatarColor(userId: string) {
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
-function formatDate(value: string) {
+function formatDate(value: string | null) {
+  if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("vi-VN");
@@ -51,15 +52,35 @@ function RoleBadge({ role }: { role: UserRole }) {
   return <span className={ROLE_BADGE_CLASS[role]}>{ROLE_LABELS[role]}</span>;
 }
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
+function StatusCell({ user }: { user: IdentityUser }) {
+  if (user.isDeleted) {
+    return (
+      <div className="user-table__status-cell">
+        <span className="badge badge--deleted">Đã xóa</span>
+        {user.deletedAt && (
+          <span className="user-table__status-meta">
+            {formatDate(user.deletedAt)}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <span className={`badge ${isActive ? "badge--active" : "badge--inactive"}`}>
-      {isActive ? "Hoạt động" : "Tạm dừng"}
+    <span className={`badge ${user.isActive ? "badge--active" : "badge--inactive"}`}>
+      {user.isActive ? "Hoạt động" : "Tạm dừng"}
     </span>
   );
 }
 
-export default function UserTable({ users, togglingId, onToggleStatus, onEdit, onChangeRole, onDelete }: Props) {
+export default function UserTable({
+  users,
+  togglingId,
+  onToggleStatus,
+  onEdit,
+  onChangeRole,
+  onDelete,
+}: Props) {
   if (users.length === 0) {
     return (
       <div className="user-table__empty">
@@ -82,68 +103,68 @@ export default function UserTable({ users, togglingId, onToggleStatus, onEdit, o
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
-            <tr key={user.userId}>
-              <td>
-                <div className="user-table__name-cell">
-                  <div
-                    className="user-table__avatar"
-                    style={{ background: getAvatarColor(user.userId) }}>
-                    {getInitials(user.fullName)}
+          {users.map((user) => {
+            const busy = togglingId === user.userId;
+            const disabled = busy || user.isDeleted;
+            return (
+              <tr key={user.userId} className={user.isDeleted ? "user-table__row--deleted" : ""}>
+                <td>
+                  <div className="user-table__name-cell">
+                    <div
+                      className="user-table__avatar"
+                      style={{ background: getAvatarColor(user.userId) }}>
+                      {getInitials(user.fullName)}
+                    </div>
+                    <span className="user-table__fullname">{user.fullName}</span>
                   </div>
-                  <span className="user-table__fullname">{user.fullName}</span>
-                </div>
-              </td>
-              <td className="user-table__email">{user.email}</td>
-              <td>
-                <RoleBadge role={user.role} />
-              </td>
-              <td>
-                <StatusBadge isActive={user.isActive} />
-              </td>
-              <td className="user-table__date">{formatDate(user.createdAt)}</td>
-              <td>
-                <div className="user-table__actions">
-                  <button
-                    className={`action-btn ${
-                      user.isActive
-                        ? "action-btn--deactivate"
-                        : "action-btn--activate"
-                    }`}
-                    title={user.isActive ? "Khóa đăng nhập" : "Mở khóa"}
-                    disabled={togglingId === user.userId}
-                    onClick={() => onToggleStatus(user)}>
-                    {togglingId === user.userId
-                      ? "⏳"
-                      : user.isActive
-                        ? "⏸"
-                        : "▶"}
-                  </button>
-                  <button
-                    className="action-btn action-btn--edit"
-                    title="Sửa thông tin"
-                    disabled={togglingId === user.userId || user.isDeleted}
-                    onClick={() => onEdit(user)}>
-                    ✏️
-                  </button>
-                  <button
-                    className="action-btn action-btn--role"
-                    title="Đổi vai trò"
-                    disabled={togglingId === user.userId || user.isDeleted}
-                    onClick={() => onChangeRole(user)}>
-                    🔑
-                  </button>
-                  <button
-                    className="action-btn action-btn--delete"
-                    title="Xóa tài khoản"
-                    disabled={togglingId === user.userId || user.isDeleted}
-                    onClick={() => onDelete(user)}>
-                    🗑️
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="user-table__email">{user.email}</td>
+                <td>
+                  <RoleBadge role={user.role} />
+                </td>
+                <td>
+                  <StatusCell user={user} />
+                </td>
+                <td className="user-table__date">{formatDate(user.createdAt)}</td>
+                <td>
+                  <div className="user-table__actions">
+                    <button
+                      className={`action-btn ${
+                        user.isActive
+                          ? "action-btn--deactivate"
+                          : "action-btn--activate"
+                      }`}
+                      title={user.isActive ? "Khóa đăng nhập" : "Mở khóa"}
+                      disabled={disabled}
+                      onClick={() => onToggleStatus(user)}>
+                      {busy ? "..." : user.isActive ? "⏸" : "▶"}
+                    </button>
+                    <button
+                      className="action-btn action-btn--edit"
+                      title="Sửa thông tin"
+                      disabled={disabled}
+                      onClick={() => onEdit(user)}>
+                      ✎
+                    </button>
+                    <button
+                      className="action-btn action-btn--role"
+                      title="Đổi vai trò"
+                      disabled={disabled}
+                      onClick={() => onChangeRole(user)}>
+                      ◆
+                    </button>
+                    <button
+                      className="action-btn action-btn--delete"
+                      title="Xóa tài khoản"
+                      disabled={disabled}
+                      onClick={() => onDelete(user)}>
+                      ×
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

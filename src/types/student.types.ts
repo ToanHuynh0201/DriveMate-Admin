@@ -1,4 +1,4 @@
-import type { LicenseTier, UserProfile } from "./user-profile.types";
+import type { Gender, LicenseTier, UserProfile } from "./user-profile.types";
 
 export type StudentStatus = "studying" | "warning" | "completed" | "locked";
 export type StudentExamResult = "pass" | "fail";
@@ -26,6 +26,8 @@ export interface Student {
 	dateOfBirth: string | null;
 	address: string | null;
 	avatarUrl: string | null;
+	mediaFileId: string | null;
+	gender: Gender | null;
 	isActive: boolean;
 	createdAt: string;
 	licenseTier: LicenseTier | null;
@@ -59,6 +61,8 @@ export function studentFromProfile(profile: UserProfile): Student {
 		dateOfBirth: profile.dateOfBirth,
 		address: profile.address,
 		avatarUrl: profile.avatarUrl,
+		mediaFileId: profile.mediaFileId,
+		gender: profile.gender,
 		isActive: profile.isActive,
 		createdAt: profile.createdAt,
 		licenseTier: profile.studentDetail?.licenseTier ?? null,
@@ -131,6 +135,9 @@ export const STUDENT_RANK_OPTIONS: LicenseTier[] = [
 	"B1",
 	"B2",
 	"C",
+	"D",
+	"E",
+	"F",
 ];
 
 export const STUDENT_ALERT_TEMPLATES = [

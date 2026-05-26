@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { analyticsService, examService, identityService, notificationService, userService } from "@/services";
-import type { LicenseTier } from "@/types/user-profile.types";
+import type { Gender, LicenseTier } from "@/types/user-profile.types";
+import { GENDER_LABELS } from "@/types/user-profile.types";
+import { useMediaUrl } from "@/hooks/useMediaUrl";
+import { ImageUploader } from "@/components/common/ImageUploader";
+import type { MediaReference } from "@/types/media.types";
 import type { AdminExamSession } from "@/types/exam-session.types";
 import { EXAM_SESSION_STATUS_LABELS } from "@/types/exam-session.types";
 import type { AcademicWarningSeverity } from "@/types/notification.types";
@@ -24,7 +28,27 @@ import type {
 } from "../../types/student.types";
 import "./StudentDetailPage.css";
 
-type ModalType = "rank" | "alert" | "lock" | null;
+type ModalType = "edit" | "rank" | "alert" | "lock" | null;
+
+interface ProfileForm {
+	phoneNumber: string;
+	dateOfBirth: string;
+	gender: Gender | "";
+	address: string;
+	notes: string;
+}
+
+const EMPTY_PROFILE_FORM: ProfileForm = {
+	phoneNumber: "",
+	dateOfBirth: "",
+	gender: "",
+	address: "",
+	notes: "",
+};
+
+function toDateInput(value: string | null | undefined) {
+	return value ? value.slice(0, 10) : "";
+}
 
 function Badge({ status }: { status: StudentStatus }) {
 	return (
@@ -53,6 +77,27 @@ function InlineButton({
 			disabled={disabled}>
 			{children}
 		</button>
+	);
+}
+
+function DetailAvatar({ student }: { student: Student }) {
+	const { url } = useMediaUrl(student.mediaFileId);
+	const imageUrl = url || student.avatarUrl;
+
+	return (
+		<div
+			className="student-detail__avatar"
+			style={
+				imageUrl
+					? undefined
+					: { background: studentAvatarColor(student.id) }
+			}>
+			{imageUrl ? (
+				<img src={imageUrl} alt={student.fullName} />
+			) : (
+				studentInitials(student.fullName)
+			)}
+		</div>
 	);
 }
 
@@ -131,6 +176,9 @@ export default function StudentDetailPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
 	const [modal, setModal] = useState<ModalType>(null);
+	const [profileForm, setProfileForm] =
+		useState<ProfileForm>(EMPTY_PROFILE_FORM);
+	const [profileAvatar, setProfileAvatar] = useState<MediaReference | null>(null);
 	const [rank, setRank] = useState<LicenseTier>("B1");
 	const [alertTemplate, setAlertTemplate] = useState(STUDENT_ALERT_TEMPLATES[0]);
 	const [alertContent, setAlertContent] = useState("");
@@ -193,6 +241,25 @@ export default function StudentDetailPage() {
 
 	const status = studentStatus(student);
 
+	const openEditModal = () => {
+		setProfileForm({
+			phoneNumber: student.phoneNumber ?? "",
+			dateOfBirth: toDateInput(student.dateOfBirth),
+			gender: student.gender ?? "",
+			address: student.address ?? "",
+			notes: student.notes ?? "",
+		});
+		setProfileAvatar(
+			student.mediaFileId
+				? {
+						mediaFileId: student.mediaFileId,
+						publicUrl: student.avatarUrl ?? "",
+					}
+				: null,
+		);
+		setModal("edit");
+	};
+
 	const openRankModal = () => {
 		setRank(student.licenseTier ?? "B1");
 		setModal("rank");
@@ -220,6 +287,34 @@ export default function StudentDetailPage() {
 			setModal(null);
 		} else {
 			showToast(`Cập nhật hạng bằng lỗi: ${res.error}`, "error");
+		}
+	};
+
+	const confirmEditProfile = async () => {
+		const normalizedPhone = profileForm.phoneNumber.replace(/\s+/g, "");
+		if (normalizedPhone && !/^[0-9]{9,11}$/.test(normalizedPhone)) {
+			showToast("Số điện thoại không hợp lệ.", "error");
+			return;
+		}
+
+		setSubmitting(true);
+		const res = await userService.update(student.id, {
+			phoneNumber: profileForm.phoneNumber.trim() || undefined,
+			dateOfBirth: profileForm.dateOfBirth || undefined,
+			gender: profileForm.gender || undefined,
+			address: profileForm.address.trim() || undefined,
+			notes: profileForm.notes.trim() || undefined,
+			avatarUrl: profileAvatar?.publicUrl,
+			mediaFileId: profileAvatar?.mediaFileId,
+		});
+		setSubmitting(false);
+
+		if (res.success) {
+			setStudent(studentFromProfile(res.data));
+			showToast("Đã cập nhật hồ sơ học viên.", "success");
+			setModal(null);
+		} else {
+			showToast(`Cập nhật hồ sơ lỗi: ${res.error}`, "error");
 		}
 	};
 
@@ -295,6 +390,12 @@ export default function StudentDetailPage() {
 				</div>
 				<div className="student-detail__actions">
 					<InlineButton
+						tone="green"
+						onClick={openEditModal}
+						disabled={submitting}>
+						Sửa Hồ Sơ
+					</InlineButton>
+					<InlineButton
 						tone="yellow"
 						onClick={openRankModal}
 						disabled={submitting}>
@@ -326,11 +427,7 @@ export default function StudentDetailPage() {
 
 			<div className="student-detail__grid">
 				<aside className="student-detail__profile card-surface">
-					<div
-						className="student-detail__avatar"
-						style={{ background: studentAvatarColor(student.id) }}>
-						{studentInitials(student.fullName)}
-					</div>
+					<DetailAvatar student={student} />
 					<div className="student-detail__name">
 						{student.fullName}
 					</div>
@@ -343,6 +440,9 @@ export default function StudentDetailPage() {
 							{student.dateOfBirth
 								? new Date(student.dateOfBirth).toLocaleDateString("vi-VN")
 								: "—"}
+						</div>
+						<div>
+							⚥ {student.gender ? GENDER_LABELS[student.gender] : "—"}
 						</div>
 						<div>
 							🏷 Hạng {student.licenseTier ?? "Chưa phân"}
@@ -407,6 +507,103 @@ export default function StudentDetailPage() {
 					</div>
 				</section>
 			</div>
+
+			{modal === "edit" && (
+				<Modal
+					title="Sửa hồ sơ học viên"
+					onClose={() => setModal(null)}
+					footer={
+						<div className="detail-modal__footer">
+							<button onClick={() => setModal(null)}>Hủy</button>
+							<button
+								className="detail-modal__confirm detail-modal__confirm--green"
+								onClick={confirmEditProfile}
+								disabled={submitting}>
+								{submitting ? "Đang lưu..." : "Lưu hồ sơ"}
+							</button>
+						</div>
+					}>
+					<div className="detail-modal__avatar-edit">
+						<ImageUploader
+							value={profileAvatar}
+							onChange={setProfileAvatar}
+							shape="circle"
+							helpText="Tùy chọn - JPG, PNG, WebP"
+							disabled={submitting}
+						/>
+					</div>
+					<div className="detail-modal__grid">
+						<div className="detail-modal__field">
+							<label>Số điện thoại</label>
+							<input
+								value={profileForm.phoneNumber}
+								onChange={(e) =>
+									setProfileForm((current) => ({
+										...current,
+										phoneNumber: e.target.value,
+									}))
+								}
+								placeholder="0901234567"
+							/>
+						</div>
+						<div className="detail-modal__field">
+							<label>Ngày sinh</label>
+							<input
+								type="date"
+								value={profileForm.dateOfBirth}
+								onChange={(e) =>
+									setProfileForm((current) => ({
+										...current,
+										dateOfBirth: e.target.value,
+									}))
+								}
+							/>
+						</div>
+						<div className="detail-modal__field">
+							<label>Giới tính</label>
+							<select
+								value={profileForm.gender}
+								onChange={(e) =>
+									setProfileForm((current) => ({
+										...current,
+										gender: e.target.value as Gender | "",
+									}))
+								}>
+								<option value="">Chọn giới tính</option>
+								<option value="MALE">Nam</option>
+								<option value="FEMALE">Nữ</option>
+								<option value="OTHER">Khác</option>
+							</select>
+						</div>
+						<div className="detail-modal__field">
+							<label>Địa chỉ</label>
+							<input
+								value={profileForm.address}
+								onChange={(e) =>
+									setProfileForm((current) => ({
+										...current,
+										address: e.target.value,
+									}))
+								}
+								placeholder="TP.HCM"
+							/>
+						</div>
+					</div>
+					<div className="detail-modal__field">
+						<label>Ghi chú</label>
+						<textarea
+							value={profileForm.notes}
+							onChange={(e) =>
+								setProfileForm((current) => ({
+									...current,
+									notes: e.target.value,
+								}))
+							}
+							placeholder="Ghi chú nội bộ về học viên..."
+						/>
+					</div>
+				</Modal>
+			)}
 
 			{modal === "rank" && (
 				<Modal

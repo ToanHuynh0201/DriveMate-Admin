@@ -17,7 +17,6 @@ interface FormState {
 	dateOfBirth: string;
 	address: string;
 	gender: Gender | "";
-	enrollmentDate: string;
 	licenseTier: LicenseTier | "";
 	notes: string;
 }
@@ -29,7 +28,6 @@ interface FormErrors {
 	phoneNumber?: string;
 	dateOfBirth?: string;
 	address?: string;
-	enrollmentDate?: string;
 	licenseTier?: string;
 }
 
@@ -41,7 +39,6 @@ const EMPTY_FORM: FormState = {
 	dateOfBirth: "",
 	address: "",
 	gender: "",
-	enrollmentDate: "",
 	licenseTier: "",
 	notes: "",
 };

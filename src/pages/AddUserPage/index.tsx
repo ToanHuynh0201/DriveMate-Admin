@@ -20,6 +20,7 @@ interface FormState {
   gender: Gender | "";
   address: string;
   licenseTier: LicenseTier | "";
+  notes: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -32,6 +33,7 @@ const EMPTY_FORM: FormState = {
   gender: "",
   address: "",
   licenseTier: "",
+  notes: "",
 };
 
 interface FormErrors {
@@ -39,6 +41,7 @@ interface FormErrors {
   email?: string;
   temporaryPassword?: string;
   role?: string;
+  phoneNumber?: string;
 }
 
 interface ToastState {
@@ -83,6 +86,12 @@ export default function AddUserPage() {
     } else if (form.temporaryPassword.length < 8) {
       next.temporaryPassword = "Mật khẩu tối thiểu 8 ký tự.";
     }
+    if (
+      form.phoneNumber.trim() &&
+      !/^[0-9]{9,11}$/.test(form.phoneNumber.replace(/\s+/g, ""))
+    ) {
+      next.phoneNumber = "Số điện thoại không hợp lệ.";
+    }
     if (!form.role) next.role = "Vui lòng chọn vai trò.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -92,7 +101,6 @@ export default function AddUserPage() {
     if (!validate()) return;
     setLoading(true);
 
-    // 1. Create identity user (Keycloak account).
     const created = await identityService.create({
       email: form.email.trim(),
       fullName: form.fullName.trim(),
@@ -107,8 +115,6 @@ export default function AddUserPage() {
     }
 
     const userId = created.data.userId;
-
-    // 2. Wait for user-service to consume the event and create the profile.
     const profile = await userService.getByIdWithRetry(userId);
     if (!profile.success) {
       setLoading(false);
@@ -120,19 +126,22 @@ export default function AddUserPage() {
       return;
     }
 
-    // 3. Patch optional profile fields if user filled any.
     const hasExtra =
       form.phoneNumber.trim() ||
       form.dateOfBirth ||
       form.gender ||
       form.address.trim() ||
+      (form.role === "STUDENT" && form.notes.trim()) ||
       avatar !== null;
+
     if (hasExtra) {
       const updateResult = await userService.update(userId, {
         phoneNumber: form.phoneNumber.trim() || undefined,
         dateOfBirth: form.dateOfBirth || undefined,
         gender: form.gender || undefined,
         address: form.address.trim() || undefined,
+        notes:
+          form.role === "STUDENT" ? form.notes.trim() || undefined : undefined,
         avatarUrl: avatar?.publicUrl,
         mediaFileId: avatar?.mediaFileId,
       });
@@ -146,7 +155,6 @@ export default function AddUserPage() {
       }
     }
 
-    // 4. Assign license tier when student.
     if (form.role === "STUDENT" && form.licenseTier) {
       const licenseResult = await userService.assignLicenseTier(
         userId,
@@ -236,11 +244,14 @@ export default function AddUserPage() {
             <div className="add-user__field">
               <label className="add-user__label">Số điện thoại</label>
               <input
-                className="add-user__input"
+                className={`add-user__input${errors.phoneNumber ? " add-user__input--error" : ""}`}
                 placeholder="0901234567"
                 value={form.phoneNumber}
                 onChange={(e) => update("phoneNumber", e.target.value)}
               />
+              {errors.phoneNumber && (
+                <span className="add-user__error">{errors.phoneNumber}</span>
+              )}
             </div>
 
             <div className="add-user__row">
@@ -283,8 +294,7 @@ export default function AddUserPage() {
           {form.role === "STUDENT" && (
             <div className="add-user__card">
               <h2 className="add-user__card-title">Hạng Bằng Lái</h2>
-              <p
-                style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
+              <p style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
                 Chỉ áp dụng cho học viên
               </p>
               <div className="add-user__field">
@@ -293,10 +303,7 @@ export default function AddUserPage() {
                   className="add-user__select"
                   value={form.licenseTier}
                   onChange={(e) =>
-                    update(
-                      "licenseTier",
-                      e.target.value as LicenseTier | "",
-                    )
+                    update("licenseTier", e.target.value as LicenseTier | "")
                   }>
                   <option value="">Chọn hạng</option>
                   {LICENSE_TIERS.map((tier) => (
@@ -305,6 +312,15 @@ export default function AddUserPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="add-user__field">
+                <label className="add-user__label">Ghi chú</label>
+                <textarea
+                  className="add-user__input add-user__textarea"
+                  placeholder="Ghi chú nội bộ về học viên..."
+                  value={form.notes}
+                  onChange={(e) => update("notes", e.target.value)}
+                />
               </div>
             </div>
           )}
@@ -317,7 +333,7 @@ export default function AddUserPage() {
               value={avatar}
               onChange={setAvatar}
               shape="circle"
-              helpText="Tùy chọn — JPG, PNG, WebP (tối đa 10MB)"
+              helpText="Tùy chọn - JPG, PNG, WebP (tối đa 10MB)"
             />
           </div>
 
@@ -348,7 +364,7 @@ export default function AddUserPage() {
             className="add-user__submit-btn"
             onClick={handleSubmit}
             disabled={loading}>
-            {loading ? "⏳ Đang tạo..." : "💾 Tạo Mới"}
+            {loading ? "Đang tạo..." : "Tạo Mới"}
           </button>
 
           <button

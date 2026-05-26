@@ -97,6 +97,13 @@
 	font-size: 28px;
 	font-weight: 800;
 	margin-bottom: 6px;
+	overflow: hidden;
+}
+
+.student-detail__avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
 }
 
 .student-detail__name {
@@ -263,6 +270,18 @@
 	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
 }
 
+.detail-modal__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.detail-modal__avatar-edit {
+	width: 180px;
+	max-width: 100%;
+	margin: 0 auto 18px;
+}
+
 .detail-modal__title {
 	font-size: 22px;
 	font-weight: 800;
@@ -287,15 +306,23 @@
 	font-weight: 600;
 }
 
+.detail-modal__field input,
+.detail-modal__field select,
 .detail-modal__field textarea {
-	min-height: 108px;
-	resize: vertical;
+	width: 100%;
 	border: 1px solid #333333;
 	border-radius: 12px;
 	background: #1a1a1a;
 	color: #fff;
 	padding: 12px;
 	outline: none;
+	box-sizing: border-box;
+}
+
+.detail-modal__field textarea {
+	min-height: 108px;
+	resize: vertical;
+	font-family: inherit;
 }
 
 .detail-modal__rank-list,
@@ -364,6 +391,12 @@
 	}
 
 	.student-detail__stats {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 640px) {
+	.detail-modal__grid {
 		grid-template-columns: 1fr;
 	}
 }

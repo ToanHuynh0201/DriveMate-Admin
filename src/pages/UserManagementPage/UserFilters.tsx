@@ -20,7 +20,7 @@ export default function UserFilters({ filters, onChange }: Props) {
   return (
     <div className="user-filters">
       <div className="user-filters__search">
-        <span className="user-filters__search-icon">🔍</span>
+        <span className="user-filters__search-icon">⌕</span>
         <input
           className="user-filters__input"
           type="text"
@@ -57,9 +57,18 @@ export default function UserFilters({ filters, onChange }: Props) {
         <option value="false">Tạm dừng</option>
       </select>
 
+      <label className="user-filters__toggle">
+        <input
+          type="checkbox"
+          checked={filters.includeDeleted}
+          onChange={(e) => update({ includeDeleted: e.target.checked })}
+        />
+        <span>Gồm đã xóa</span>
+      </label>
+
       <button
         className="user-filters__btn"
-        onClick={() => onChange({ search: "", role: "", isActive: "" })}>
+        onClick={() => onChange({ ...filters, search: "", role: "", isActive: "", includeDeleted: false })}>
         <span>⊘</span> Xóa lọc
       </button>
     </div>

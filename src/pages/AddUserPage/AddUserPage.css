@@ -117,6 +117,12 @@
   border-color: #555;
 }
 
+.add-user__textarea {
+  min-height: 96px;
+  resize: vertical;
+  font-family: inherit;
+}
+
 .add-user__input--error,
 .add-user__select--error {
   border-color: #e74c3c;
