@@ -22,30 +22,38 @@ interface StudentTableProps {
 export function StudentTable({ students, onOpen }: StudentTableProps) {
 	if (!students.length) {
 		return (
-			<div className="student-empty">KhÃ´ng tÃ¬m tháº¥y há»c viÃªn nÃ o.</div>
+			<div className="student-empty">Không tìm thấy học viên nào.</div>
 		);
 	}
+
+	const sorted = [...students].sort((a, b) => {
+		const aLocked = studentStatus(a) === "locked";
+		const bLocked = studentStatus(b) === "locked";
+		return Number(aLocked) - Number(bLocked);
+	});
 
 	return (
 		<div className="student-table-wrap">
 			<table className="student-table">
 				<thead>
 					<tr>
-						<th>Há»c ViÃªn</th>
-						<th>LiÃªn Há»‡</th>
-						<th>Háº¡ng Báº±ng</th>
-						<th>NgÃ y Nháº­p Há»c</th>
-						<th>Tráº¡ng ThÃ¡i</th>
-						<th>Thao TÃ¡c</th>
+						<th>Học Viên</th>
+						<th>Liên Hệ</th>
+						<th>Hạng Bằng</th>
+						<th>Ngày Nhập Học</th>
+						<th>Trạng Thái</th>
+						<th>Thao Tác</th>
 					</tr>
 				</thead>
 				<tbody>
-					{students.map((student) => {
+					{sorted.map((student) => {
 						const status = studentStatus(student);
+						const isLocked = status === "locked";
 						return (
 							<tr
 								key={student.id}
-								onClick={() => onOpen(student.id)}>
+								className={isLocked ? "student-table__row--locked" : undefined}
+								onClick={isLocked ? undefined : () => onOpen(student.id)}>
 								<td>
 									<div className="student-table__name">
 										<StudentAvatar student={student} />
@@ -62,12 +70,12 @@ export function StudentTable({ students, onOpen }: StudentTableProps) {
 								<td>
 									<div className="student-table__contact">
 										<span>{student.email}</span>
-										<span>{student.phoneNumber ?? "â€”"}</span>
+										<span>{student.phoneNumber ?? "—"}</span>
 									</div>
 								</td>
 								<td>
 									<span className="student-rank">
-										{student.licenseTier ?? "ChÆ°a phÃ¢n"}
+										{student.licenseTier ?? "Chưa phân"}
 									</span>
 								</td>
 								<td>
@@ -75,7 +83,7 @@ export function StudentTable({ students, onOpen }: StudentTableProps) {
 										? new Date(
 												student.enrolledAt,
 											).toLocaleDateString("vi-VN")
-										: "â€”"}
+										: "—"}
 								</td>
 								<td>
 									<span
@@ -86,11 +94,12 @@ export function StudentTable({ students, onOpen }: StudentTableProps) {
 								<td>
 									<button
 										className="student-table__action"
+										disabled={isLocked}
 										onClick={(e) => {
 											e.stopPropagation();
 											onOpen(student.id);
 										}}>
-										Chi tiáº¿t
+										Chi tiết
 									</button>
 								</td>
 							</tr>

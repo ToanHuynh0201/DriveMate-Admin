@@ -9,7 +9,7 @@ export function StatusCell({ user }: StatusCellProps) {
 	if (user.isDeleted) {
 		return (
 			<div className="user-table__status-cell">
-				<span className="badge badge--deleted">ÄÃ£ xÃ³a</span>
+				<span className="badge badge--deleted">Đã xóa</span>
 				{user.deletedAt && (
 					<span className="user-table__status-meta">
 						{formatDate(user.deletedAt)}
@@ -21,7 +21,7 @@ export function StatusCell({ user }: StatusCellProps) {
 
 	return (
 		<span className={`badge ${user.isActive ? "badge--active" : "badge--inactive"}`}>
-			{user.isActive ? "Hoáº¡t Ä‘á»™ng" : "Táº¡m dá»«ng"}
+			{user.isActive ? "Hoạt động" : "Tạm dừng"}
 		</span>
 	);
 }

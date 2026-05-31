@@ -10,7 +10,7 @@ import type {
 import { apiService } from '@/lib';
 import { withErrorHandling } from '@/utils';
 
-interface CourseListParams {
+export interface CourseListParams {
   page?: number;
   size?: number;
   licenseCategory?: string;
@@ -25,9 +25,22 @@ export const courseService = {
     ),
   ),
 
+  listPublic: withErrorHandling((params?: CourseListParams) =>
+    apiService.get<ApiResponse<PaginatedResponse<CourseResponse>>>(
+      '/courses',
+      { params },
+    ),
+  ),
+
   getById: withErrorHandling((id: string) =>
     apiService.get<ApiResponse<CourseResponse>>(
       `/admin/courses/${id}`,
+    ),
+  ),
+
+  getPublicById: withErrorHandling((id: string) =>
+    apiService.get<ApiResponse<CourseResponse>>(
+      `/courses/${id}`,
     ),
   ),
 

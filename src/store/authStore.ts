@@ -1,6 +1,12 @@
 import { create } from "zustand";
-import type { AuthState, AuthUser, LoginCredentials, UserRole } from "../types";
-import { authService } from "@/services";
+import type {
+  AuthState,
+  AuthUser,
+  LicenseTier,
+  LoginCredentials,
+  UserRole,
+} from "../types";
+import { authService, userService } from "@/services";
 import { AUTH_CONFIG } from "@/constants";
 import {
   getForgotPasswordErrorMessage,
@@ -8,7 +14,6 @@ import {
   getStorageItem,
   getUserData,
   getLoginErrorMessage,
-  isForgotPasswordNotFound,
   removeAuthToken,
   removeStorageItem,
   removeUserData,
@@ -49,6 +54,28 @@ function extractRoleFromJwt(payload: Record<string, unknown>): UserRole {
   return "STUDENT";
 }
 
+function extractLicenseTierFromJwt(payload: Record<string, unknown>) {
+  return (
+    payload.licenseTier ??
+    payload.license_tier ??
+    payload.licenseCategory ??
+    payload.license_category ??
+    null
+  ) as LicenseTier | null;
+}
+
+async function hydrateAuthUser(user: AuthUser): Promise<AuthUser> {
+  const profile = await userService.getMe();
+  if (!profile.success) return user;
+
+  return {
+    id: profile.data.id,
+    email: profile.data.email,
+    role: profile.data.role,
+    licenseTier: profile.data.studentDetail?.licenseTier ?? null,
+  };
+}
+
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   token: null,
@@ -64,7 +91,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
     if (token) {
       const user = await getUserData();
       if (user) {
-        set({ token, user, isAuthenticated: true, isInitializing: false });
+        const hydratedUser = await hydrateAuthUser(user);
+        await setUserData(hydratedUser);
+        set({
+          token,
+          user: hydratedUser,
+          isAuthenticated: true,
+          isInitializing: false,
+        });
         return;
       }
     }
@@ -87,13 +121,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
       id: (payload.sub as string) ?? "",
       email: (payload.email as string) ?? credentials.email,
       role: extractRoleFromJwt(payload),
+      licenseTier: extractLicenseTierFromJwt(payload),
     };
 
     await setAuthToken(accessToken);
     await setStorageItem(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY, refreshToken);
-    await setUserData(user);
+    const hydratedUser = await hydrateAuthUser(user);
+    await setUserData(hydratedUser);
 
-    set({ user, token: accessToken, isAuthenticated: true, loading: false, error: null });
+    set({
+      user: hydratedUser,
+      token: accessToken,
+      isAuthenticated: true,
+      loading: false,
+      error: null,
+    });
   },
 
   logout: async () => {
@@ -124,10 +166,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     const result = await authService.forgotPassword({ email });
 
     if (!result.success) {
-      if (isForgotPasswordNotFound(result)) {
-        set({ loading: false, passwordResetEmailSent: true, error: null });
-        return;
-      }
       set({ loading: false, error: getForgotPasswordErrorMessage(result) });
       return;
     }

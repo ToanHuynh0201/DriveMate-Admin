@@ -13,11 +13,12 @@ import { ImageUploader } from "@/components/common/ImageUploader";
 import { validateEmail } from "@/utils/authUtils";
 import {
   getLicenseAssignmentErrorMessage,
+  getLicenseAssignmentSuccessMessage,
   getLockAccountErrorMessage,
   getLockAccountSuccessMessage,
   getUpdateAccountErrorMessage,
   getUpdateAccountSuccessMessage,
-  getSrsMessage,
+  SRS_MESSAGES,
 } from "@/utils/srsMessages";
 import { useAuthStore } from "../../store/authStore";
 import UserFilters from "./UserFilters";
@@ -175,10 +176,10 @@ export default function UserManagementPage() {
     const result = await identityService.setLock(user.userId, user.isActive);
     setTogglingId(null);
     if (!result.success) {
-      setError(getLockAccountErrorMessage(result, "user"));
+      setError(getLockAccountErrorMessage(result));
       return;
     }
-    setNotice(getLockAccountSuccessMessage(user.isActive, "user"));
+    setNotice(getLockAccountSuccessMessage(user.isActive));
     await fetchUsers();
   };
 
@@ -186,6 +187,14 @@ export default function UserManagementPage() {
     setProfileForm(profileToForm(profile));
     setProfileAvatar(profileToAvatar(profile));
     setProfileLicenseTier(profile.studentDetail?.licenseTier ?? "");
+  };
+
+  const refreshOpenProfile = async (userId: string) => {
+    const result = await userService.getById(userId);
+    if (result.success) {
+      hydrateProfileForm(result.data);
+    }
+    return result;
   };
 
   const handleOpenEdit = async (user: IdentityUser) => {
@@ -201,24 +210,24 @@ export default function UserManagementPage() {
     if (result.success) {
       hydrateProfileForm(result.data);
     } else {
-      setModalError(getUpdateAccountErrorMessage(result, "user"));
+      setModalError(getUpdateAccountErrorMessage(result));
     }
     setProfileLoading(false);
   };
 
   const validateEdit = () => {
     if (!editForm.fullName.trim()) {
-      return getSrsMessage("MSG13", "user");
+      return SRS_MESSAGES.MSG13;
     }
     if (!editForm.email.trim()) {
-      return getSrsMessage("MSG13", "user");
+      return SRS_MESSAGES.MSG13;
     }
     if (!validateEmail(editForm.email.trim())) {
-      return getSrsMessage("MSG13", "user");
+      return SRS_MESSAGES.MSG13;
     }
     const normalizedPhone = profileForm.phoneNumber.replace(/\s+/g, "");
     if (normalizedPhone && !/^[0-9]{9,11}$/.test(normalizedPhone)) {
-      return getSrsMessage("MSG13", "user");
+      return SRS_MESSAGES.MSG13;
     }
     return null;
   };
@@ -242,9 +251,14 @@ export default function UserManagementPage() {
 
     if (!identityResult.success) {
       setModalLoading(false);
-      setModalError(getUpdateAccountErrorMessage(identityResult, "user"));
+      setModalError(getUpdateAccountErrorMessage(identityResult));
       return;
     }
+    setEditModal(identityResult.data);
+    setEditForm({
+      email: identityResult.data.email,
+      fullName: identityResult.data.fullName,
+    });
 
     const profileResult = await userService.update(editModal.userId, {
       phoneNumber: profileForm.phoneNumber.trim() || undefined,
@@ -257,12 +271,15 @@ export default function UserManagementPage() {
     });
 
     if (!profileResult.success) {
+      await fetchUsers();
+      await refreshOpenProfile(editModal.userId);
       setModalLoading(false);
       setModalError(
-        `Account was updated, but profile update failed: ${getUpdateAccountErrorMessage(profileResult, "user")}`,
+        `Partial update: ${getUpdateAccountErrorMessage(profileResult)}`,
       );
       return;
     }
+    hydrateProfileForm(profileResult.data);
 
     if (editModal.role === "STUDENT" && profileLicenseTier) {
       const licenseResult = await userService.assignLicenseTier(
@@ -270,17 +287,24 @@ export default function UserManagementPage() {
         profileLicenseTier,
       );
       if (!licenseResult.success) {
+        await fetchUsers();
+        await refreshOpenProfile(editModal.userId);
         setModalLoading(false);
         setModalError(
-          `Profile was updated, but license assignment failed: ${getLicenseAssignmentErrorMessage(licenseResult)}`,
+          `Partial update: ${getLicenseAssignmentErrorMessage(licenseResult)}`,
         );
         return;
       }
+      hydrateProfileForm(licenseResult.data);
     }
 
     setModalLoading(false);
     setEditModal(null);
-    setNotice(getUpdateAccountSuccessMessage("user"));
+    setNotice(
+      editModal.role === "STUDENT" && profileLicenseTier
+        ? `${getUpdateAccountSuccessMessage()} ${getLicenseAssignmentSuccessMessage()}`
+        : getUpdateAccountSuccessMessage(),
+    );
     await fetchUsers();
   };
 
@@ -303,23 +327,28 @@ export default function UserManagementPage() {
   const handleRoleSubmit = async () => {
     if (!roleModal) return;
     setNotice(null);
+    if (roleValue === "STUDENT" && !roleLicenseTier) {
+      setModalError(SRS_MESSAGES.MSG20);
+      return;
+    }
     setModalLoading(true);
     setModalError(null);
     const result = await identityService.changeRole(roleModal.userId, roleValue);
     if (!result.success) {
       setModalLoading(false);
-      setModalError(getUpdateAccountErrorMessage(result, "user"));
+      setModalError(getUpdateAccountErrorMessage(result));
       return;
     }
 
     if (roleValue === "STUDENT" && roleLicenseTier) {
       const profileResult = await waitForStudentProfile(roleModal.userId);
       if (!profileResult?.success) {
+        await fetchUsers();
         setModalLoading(false);
         setModalError(
-          `Role was updated, but the student profile is still syncing: ${
+          `Partial update: ${
             profileResult?.success === false
-              ? getUpdateAccountErrorMessage(profileResult, "user")
+              ? getUpdateAccountErrorMessage(profileResult)
               : "Please try again later."
           }`,
         );
@@ -331,9 +360,10 @@ export default function UserManagementPage() {
         roleLicenseTier,
       );
       if (!licenseResult.success) {
+        await fetchUsers();
         setModalLoading(false);
         setModalError(
-          `Role was updated, but license assignment failed: ${getLicenseAssignmentErrorMessage(licenseResult)}`,
+          `Partial update: ${getLicenseAssignmentErrorMessage(licenseResult)}`,
         );
         return;
       }
@@ -341,7 +371,11 @@ export default function UserManagementPage() {
 
     setModalLoading(false);
     setRoleModal(null);
-    setNotice(getUpdateAccountSuccessMessage("user"));
+    setNotice(
+      roleValue === "STUDENT"
+        ? `${getUpdateAccountSuccessMessage()} ${getLicenseAssignmentSuccessMessage()}`
+        : getUpdateAccountSuccessMessage(),
+    );
     await fetchUsers();
   };
 

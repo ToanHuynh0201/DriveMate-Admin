@@ -3,6 +3,9 @@ export type SrsMessageCode =
   | "MSG02"
   | "MSG03"
   | "MSG04"
+  | "MSG05"
+  | "MSG06"
+  | "MSG07"
   | "MSG08"
   | "MSG09"
   | "MSG10"
@@ -17,11 +20,23 @@ export type SrsMessageCode =
   | "MSG19"
   | "MSG20"
   | "MSG21"
+  | "MSG22"
+  | "MSG23"
+  | "MSG24"
+  | "MSG25"
+  | "MSG26"
+  | "MSG27"
+  | "MSG28"
+  | "MSG29"
+  | "MSG30"
+  | "MSG31"
+  | "MSG32"
+  | "MSG33"
+  | "MSG34"
+  | "MSG35"
   | "MSG122"
   | "MSG126"
   | "MSG127";
-
-export type AccountMessageContext = "student" | "user";
 
 export interface ApiFailureLike {
   code?: string;
@@ -34,26 +49,12 @@ export const SRS_MESSAGES: Record<SrsMessageCode, string> = {
   MSG02: "Your account is locked. Please contact support.",
   MSG03: "Invalid email or password.",
   MSG04: "Please enter a valid email address.",
+  MSG05: "No account found for this email.",
+  MSG06: "Reset link is invalid or expired.",
+  MSG07: "Password does not meet complexity requirements.",
   MSG08: "Please complete all required fields.",
   MSG09: "You do not have permission to create this account.",
   MSG10: "Email already exists.",
-  MSG11: "Student account created successfully.",
-  MSG12: "Student account not found.",
-  MSG13: "Invalid student account data.",
-  MSG14: "You do not have permission to update student accounts.",
-  MSG15: "Student account updated successfully.",
-  MSG16: "You do not have permission to lock student accounts.",
-  MSG17: "Invalid student account status for locking.",
-  MSG18: "Student account locked successfully.",
-  MSG19: "You do not have permission to assign license categories.",
-  MSG20: "Invalid license category.",
-  MSG21: "License category assigned successfully.",
-  MSG122: "You have been logged out successfully.",
-  MSG126: "Authentication token is missing.",
-  MSG127: "Authentication token signature is invalid.",
-};
-
-const USER_ACCOUNT_MESSAGES: Partial<Record<SrsMessageCode, string>> = {
   MSG11: "User account created successfully.",
   MSG12: "User account not found.",
   MSG13: "Invalid user account data.",
@@ -62,9 +63,30 @@ const USER_ACCOUNT_MESSAGES: Partial<Record<SrsMessageCode, string>> = {
   MSG16: "You do not have permission to lock user accounts.",
   MSG17: "Invalid user account status for locking.",
   MSG18: "User account locked successfully.",
+  MSG19: "You do not have permission to assign license categories.",
+  MSG20: "Invalid license category.",
+  MSG21: "License category assigned successfully.",
+  MSG22: "Your session has expired. Please log in again.",
+  MSG23: "Course not found.",
+  MSG24: "No courses match your criteria.",
+  MSG25: "Please complete all required course fields.",
+  MSG26: "You do not have permission to create courses.",
+  MSG27: "Course code already exists.",
+  MSG28: "Invalid course data.",
+  MSG29: "Course created successfully.",
+  MSG30: "You do not have permission to update courses.",
+  MSG31: "Course was modified by another user. Please reload and try again.",
+  MSG32: "Course updated successfully.",
+  MSG33: "You do not have permission to delete courses.",
+  MSG34: "Course cannot be deleted because it is currently in use.",
+  MSG35: "Course deleted successfully.",
+  MSG122: "You have been logged out successfully.",
+  MSG126: "Authentication token is missing.",
+  MSG127: "Authentication token signature is invalid.",
 };
 
 const DEFAULT_ERROR = "Something went wrong. Please try again.";
+const ACCOUNT_UNLOCKED_MESSAGE = "User account unlocked successfully.";
 
 function normalize(value: string | undefined) {
   return value?.toLowerCase() ?? "";
@@ -109,6 +131,51 @@ function isDuplicateEmailError(error: ApiFailureLike) {
   );
 }
 
+function isDuplicateCourseError(error: ApiFailureLike) {
+  const text = combined(error);
+  return (
+    error.status === 409 ||
+    text.includes("course code already exists") ||
+    text.includes("course_code") ||
+    text.includes("duplicate") ||
+    text.includes("already_exists") ||
+    text.includes("already exists")
+  );
+}
+
+function isMissingRequiredCourseFieldError(error: ApiFailureLike) {
+  const text = combined(error);
+  return (
+    text.includes("required") ||
+    text.includes("missing") ||
+    text.includes("complete all required")
+  );
+}
+
+function isConcurrencyError(error: ApiFailureLike) {
+  const text = combined(error);
+  return (
+    error.status === 409 ||
+    text.includes("version") ||
+    text.includes("concurrency") ||
+    text.includes("modified by another") ||
+    text.includes("stale")
+  );
+}
+
+function isDependencyError(error: ApiFailureLike) {
+  const text = combined(error);
+  return (
+    error.status === 409 ||
+    text.includes("dependency") ||
+    text.includes("dependencies") ||
+    text.includes("currently in use") ||
+    text.includes("in_use") ||
+    text.includes("in use") ||
+    text.includes("enrollment")
+  );
+}
+
 function isLockedError(error: ApiFailureLike) {
   const text = combined(error);
   return (
@@ -126,17 +193,6 @@ function fallbackError(error: ApiFailureLike) {
   return error.error || DEFAULT_ERROR;
 }
 
-export function getSrsMessage(
-  code: SrsMessageCode,
-  context: AccountMessageContext = "student",
-) {
-  if (context === "user") {
-    return USER_ACCOUNT_MESSAGES[code] ?? SRS_MESSAGES[code];
-  }
-
-  return SRS_MESSAGES[code];
-}
-
 export function getLoginErrorMessage(error: ApiFailureLike) {
   if (isLockedError(error)) return SRS_MESSAGES.MSG02;
   if (isValidationError(error)) return SRS_MESSAGES.MSG01;
@@ -149,6 +205,7 @@ export function getLoginErrorMessage(error: ApiFailureLike) {
 
 export function getForgotPasswordErrorMessage(error: ApiFailureLike) {
   if (isValidationError(error)) return SRS_MESSAGES.MSG04;
+  if (isNotFoundError(error)) return SRS_MESSAGES.MSG05;
   return fallbackError(error);
 }
 
@@ -156,41 +213,32 @@ export function isForgotPasswordNotFound(error: ApiFailureLike) {
   return isNotFoundError(error);
 }
 
-export function getCreateAccountErrorMessage(
-  error: ApiFailureLike,
-  context: AccountMessageContext = "user",
-) {
-  if (isUnauthorizedError(error)) return getSrsMessage("MSG09", context);
+export function getCreateAccountErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG09;
   if (isDuplicateEmailError(error)) return SRS_MESSAGES.MSG10;
   if (isValidationError(error)) return SRS_MESSAGES.MSG08;
   return fallbackError(error);
 }
 
-export function getUpdateAccountErrorMessage(
-  error: ApiFailureLike,
-  context: AccountMessageContext = "user",
-) {
-  if (isUnauthorizedError(error)) return getSrsMessage("MSG14", context);
-  if (isNotFoundError(error)) return getSrsMessage("MSG12", context);
+export function getUpdateAccountErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG14;
+  if (isNotFoundError(error)) return SRS_MESSAGES.MSG12;
   if (isValidationError(error) || error.status === 409 || error.status === 422) {
-    return getSrsMessage("MSG13", context);
+    return SRS_MESSAGES.MSG13;
   }
   return fallbackError(error);
 }
 
-export function getLockAccountErrorMessage(
-  error: ApiFailureLike,
-  context: AccountMessageContext = "user",
-) {
-  if (isUnauthorizedError(error)) return getSrsMessage("MSG16", context);
-  if (isNotFoundError(error)) return getSrsMessage("MSG12", context);
+export function getLockAccountErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG16;
+  if (isNotFoundError(error)) return SRS_MESSAGES.MSG12;
   if (
     isValidationError(error) ||
     error.status === 409 ||
     error.status === 422 ||
     isLockedError(error)
   ) {
-    return getSrsMessage("MSG17", context);
+    return SRS_MESSAGES.MSG17;
   }
   return fallbackError(error);
 }
@@ -202,28 +250,66 @@ export function getLicenseAssignmentErrorMessage(error: ApiFailureLike) {
   return fallbackError(error);
 }
 
-export function getCreateAccountSuccessMessage(
-  context: AccountMessageContext = "user",
-) {
-  return getSrsMessage("MSG11", context);
+export function getCreateAccountSuccessMessage() {
+  return SRS_MESSAGES.MSG11;
 }
 
-export function getUpdateAccountSuccessMessage(
-  context: AccountMessageContext = "user",
-) {
-  return getSrsMessage("MSG15", context);
+export function getUpdateAccountSuccessMessage() {
+  return SRS_MESSAGES.MSG15;
 }
 
-export function getLockAccountSuccessMessage(
-  locked: boolean,
-  context: AccountMessageContext = "user",
-) {
-  if (locked) return getSrsMessage("MSG18", context);
-  return context === "student"
-    ? "Student account unlocked successfully."
-    : "User account unlocked successfully.";
+export function getLockAccountSuccessMessage(locked: boolean) {
+  if (locked) return SRS_MESSAGES.MSG18;
+  return ACCOUNT_UNLOCKED_MESSAGE;
 }
 
 export function getLicenseAssignmentSuccessMessage() {
   return SRS_MESSAGES.MSG21;
+}
+
+export function getCourseListErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG22;
+  if (isNotFoundError(error)) return SRS_MESSAGES.MSG24;
+  return fallbackError(error);
+}
+
+export function getCourseDetailErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG22;
+  if (isNotFoundError(error)) return SRS_MESSAGES.MSG23;
+  return fallbackError(error);
+}
+
+export function getCreateCourseErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG26;
+  if (isDuplicateCourseError(error)) return SRS_MESSAGES.MSG27;
+  if (isMissingRequiredCourseFieldError(error)) return SRS_MESSAGES.MSG25;
+  if (isValidationError(error) || error.status === 422) return SRS_MESSAGES.MSG28;
+  return fallbackError(error);
+}
+
+export function getUpdateCourseErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG30;
+  if (isConcurrencyError(error)) return SRS_MESSAGES.MSG31;
+  if (isNotFoundError(error)) return SRS_MESSAGES.MSG23;
+  if (isValidationError(error) || error.status === 422) return SRS_MESSAGES.MSG28;
+  return fallbackError(error);
+}
+
+export function getDeleteCourseErrorMessage(error: ApiFailureLike) {
+  if (isUnauthorizedError(error)) return SRS_MESSAGES.MSG33;
+  if (isDependencyError(error)) return SRS_MESSAGES.MSG34;
+  if (isNotFoundError(error)) return SRS_MESSAGES.MSG23;
+  return fallbackError(error);
+}
+
+export function getCreateCourseSuccessMessage() {
+  return SRS_MESSAGES.MSG29;
+}
+
+export function getUpdateCourseSuccessMessage() {
+  return SRS_MESSAGES.MSG32;
+}
+
+export function getDeleteCourseSuccessMessage() {
+  return SRS_MESSAGES.MSG35;
 }

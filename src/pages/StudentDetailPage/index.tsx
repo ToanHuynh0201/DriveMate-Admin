@@ -10,6 +10,12 @@ import type { AdminExamSession } from "@/types/exam-session.types";
 import type { AcademicWarningSeverity } from "@/types/notification.types";
 import { SEVERITY_LABELS } from "@/types/notification.types";
 import type { ProgressDashboard } from "@/types/analytics.types";
+import {
+	getLicenseAssignmentErrorMessage,
+	getLicenseAssignmentSuccessMessage,
+	getLockAccountErrorMessage,
+	getLockAccountSuccessMessage,
+} from "@/utils/srsMessages";
 import Toast from "../../components/ui/Toast";
 import {
 	STUDENT_ALERT_TEMPLATES,
@@ -58,7 +64,6 @@ export default function StudentDetailPage() {
 	const [alertTemplate, setAlertTemplate] = useState(STUDENT_ALERT_TEMPLATES[0]);
 	const [alertContent, setAlertContent] = useState("");
 	const [alertSeverity, setAlertSeverity] = useState<AcademicWarningSeverity>("MEDIUM");
-	const [lockReason, setLockReason] = useState("");
 	const [toastMessage, setToastMessage] = useState("");
 	const [toastType, setToastType] = useState<"success" | "error">("success");
 	const [toastVisible, setToastVisible] = useState(false);
@@ -166,7 +171,6 @@ export default function StudentDetailPage() {
 	};
 
 	const openLockModal = () => {
-		setLockReason("");
 		setModal("lock");
 	};
 
@@ -176,10 +180,11 @@ export default function StudentDetailPage() {
 		setSubmitting(false);
 		if (res.success) {
 			studentQuery.setData({ ...student, licenseTier: rank });
-			showToast(`Đã cập nhật hạng bằng sang ${rank}.`, "success");
+			studentQuery.refetch();
+			showToast(getLicenseAssignmentSuccessMessage(), "success");
 			setModal(null);
 		} else {
-			showToast(`Cập nhật hạng bằng lỗi: ${res.error}`, "error");
+			showToast(getLicenseAssignmentErrorMessage(res), "error");
 		}
 	};
 
@@ -233,19 +238,16 @@ export default function StudentDetailPage() {
 	};
 
 	const confirmLock = async () => {
-		if (!lockReason.trim()) {
-			showToast("Vui lòng nhập lý do khóa tài khoản.", "error");
-			return;
-		}
 		setSubmitting(true);
 		const res = await identityService.setLock(student.id, true);
 		setSubmitting(false);
 		if (res.success) {
 			studentQuery.setData({ ...student, isActive: false });
-			showToast("Đã khóa tài khoản học viên.", "success");
+			studentQuery.refetch();
+			showToast(getLockAccountSuccessMessage(true), "success");
 			setModal(null);
 		} else {
-			showToast(`Khóa tài khoản lỗi: ${res.error}`, "error");
+			showToast(getLockAccountErrorMessage(res), "error");
 		}
 	};
 
@@ -256,9 +258,10 @@ export default function StudentDetailPage() {
 		setSubmitting(false);
 		if (res.success) {
 			studentQuery.setData({ ...student, isActive: true });
-			showToast("Đã mở khóa tài khoản.", "success");
+			studentQuery.refetch();
+			showToast(getLockAccountSuccessMessage(false), "success");
 		} else {
-			showToast(`Mở khóa lỗi: ${res.error}`, "error");
+			showToast(getLockAccountErrorMessage(res), "error");
 		}
 	};
 
@@ -608,14 +611,6 @@ export default function StudentDetailPage() {
 						<strong>{student.fullName}</strong> sẽ không thể đăng nhập
 						sau khi bị khóa.
 					</p>
-					<div className="detail-modal__field">
-						<label>Lý do khóa *</label>
-						<textarea
-							value={lockReason}
-							onChange={(e) => setLockReason(e.target.value)}
-							placeholder="Nhập lý do khóa tài khoản..."
-						/>
-					</div>
 				</Modal>
 			)}
 		</div>

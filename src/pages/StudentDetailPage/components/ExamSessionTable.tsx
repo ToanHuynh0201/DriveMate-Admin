@@ -7,34 +7,34 @@ interface ExamSessionTableProps {
 
 export function ExamSessionTable({ sessions }: ExamSessionTableProps) {
 	if (sessions.length === 0) {
-		return <p style={{ color: "rgba(255,255,255,0.4)", padding: "16px 0" }}>ChÆ°a cÃ³ lá»‹ch sá»­ thi.</p>;
+		return <p style={{ color: "rgba(255,255,255,0.4)", padding: "16px 0" }}>Chưa có lịch sử thi.</p>;
 	}
 
 	return (
 		<table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
 			<thead>
 				<tr style={{ color: "rgba(255,255,255,0.5)", textAlign: "left" }}>
-					<th style={{ padding: "6px 8px" }}>NgÃ y thi</th>
-					<th style={{ padding: "6px 8px" }}>Háº¡ng</th>
-					<th style={{ padding: "6px 8px" }}>Äiá»ƒm</th>
-					<th style={{ padding: "6px 8px" }}>Káº¿t quáº£</th>
-					<th style={{ padding: "6px 8px" }}>Tráº¡ng thÃ¡i</th>
+					<th style={{ padding: "6px 8px" }}>Ngày thi</th>
+					<th style={{ padding: "6px 8px" }}>Hạng</th>
+					<th style={{ padding: "6px 8px" }}>ĐiỒm</th>
+					<th style={{ padding: "6px 8px" }}>Kết quả</th>
+					<th style={{ padding: "6px 8px" }}>Trạng thái</th>
 				</tr>
 			</thead>
 			<tbody>
 				{sessions.map((s) => (
 					<tr key={s.id} style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
 						<td style={{ padding: "8px" }}>
-							{s.startedAt ? new Date(s.startedAt).toLocaleDateString("vi-VN") : "â€”"}
+							{s.startedAt ? new Date(s.startedAt).toLocaleDateString("vi-VN") : "—"}
 						</td>
 						<td style={{ padding: "8px" }}>{s.licenseCategory}</td>
-						<td style={{ padding: "8px" }}>{s.score ?? "â€”"}</td>
+						<td style={{ padding: "8px" }}>{s.score ?? "—"}</td>
 						<td style={{ padding: "8px" }}>
-							{s.isPassed === null ? "â€”" : s.isPassed ? (
-								<span style={{ color: "#4ade80", fontWeight: 600 }}>Äáº¡t</span>
+							{s.isPassed === null ? "—" : s.isPassed ? (
+								<span style={{ color: "#4ade80", fontWeight: 600 }}>Đạt</span>
 							) : (
 								<span style={{ color: "#f87171", fontWeight: 600 }}>
-									{s.failedByCritical ? "TrÆ°á»£t (Ä‘iá»ƒm liá»‡t)" : "TrÆ°á»£t"}
+									{s.failedByCritical ? "Trượt (điểm liệt)" : "Trượt"}
 								</span>
 							)}
 						</td>

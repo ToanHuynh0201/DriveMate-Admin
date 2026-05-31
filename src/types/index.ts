@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { UserRole } from "./identity.types";
+import type { LicenseTier } from "./user-profile.types";
 
 export * from "./api.types";
 export * from "./identity.types";
@@ -62,6 +63,7 @@ export interface AuthUser {
 	id: string;
 	email: string;
 	role: UserRole;
+	licenseTier?: LicenseTier | null;
 }
 
 export interface LoginCredentials {

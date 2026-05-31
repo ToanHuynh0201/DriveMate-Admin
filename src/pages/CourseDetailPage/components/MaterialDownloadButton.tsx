@@ -31,7 +31,7 @@ export function MaterialDownloadButton({ material }: MaterialDownloadButtonProps
 	};
 
 	if (!material.mediaFileId && !material.fileUrl) {
-		return <span className="course-detail__no-file">ChÆ°a cÃ³ file</span>;
+		return <span className="course-detail__no-file">Chưa có file</span>;
 	}
 
 	return (
@@ -41,7 +41,7 @@ export function MaterialDownloadButton({ material }: MaterialDownloadButtonProps
 			onClick={handleClick}
 			disabled={loading}
 		>
-			{loading ? "Äang má»Ÿ..." : "Táº£i xuá»‘ng"}
+			{loading ? "Đang mở..." : "Tải xuống"}
 		</button>
 	);
 }

@@ -4,13 +4,13 @@ import { SidebarIcon, type SidebarIconId } from './SidebarIcon';
 import './Sidebar.css';
 
 const NAV_ITEMS: Array<{ label: string; path: string; icon: SidebarIconId }> = [
-  { label: 'Dashboard Tá»•ng Quan', path: '/dashboard', icon: 'dashboard' },
-  { label: 'Dashboard Giáº£ng ViÃªn', path: '/dashboard/giang-vien', icon: 'user' },
-  { label: 'Quáº£n LÃ½ NgÆ°á»i DÃ¹ng', path: '/users', icon: 'users' },
-  { label: 'Quáº£n LÃ½ Há»c ViÃªn', path: '/students', icon: 'graduation' },
-  { label: 'Quáº£n LÃ½ KhÃ³a Há»c', path: '/courses', icon: 'book' },
-  { label: 'NgÃ¢n HÃ ng CÃ¢u Há»i', path: '/questions', icon: 'document' },
-  { label: 'Cáº¥u HÃ¬nh Äá» Thi', path: '/exam-config', icon: 'settings' },
+  { label: 'Dashboard Tổng Quan', path: '/dashboard', icon: 'dashboard' },
+  { label: 'Dashboard Giảng Viên', path: '/dashboard/giang-vien', icon: 'user' },
+  { label: 'Quản Lý Người Dùng', path: '/users', icon: 'users' },
+  { label: 'Quản Lý Học Viên', path: '/students', icon: 'graduation' },
+  { label: 'Quản Lý Khóa Học', path: '/courses', icon: 'book' },
+  { label: 'Ngân Hàng Câu Hỏi', path: '/questions', icon: 'document' },
+  { label: 'Cấu Hình Đề Thi', path: '/exam-config', icon: 'settings' },
   { label: 'Audit Logs', path: '/audit-logs', icon: 'shield' },
   { label: 'System Health', path: '/system-health', icon: 'pulse' },
 ];
@@ -41,11 +41,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {!collapsed && (
           <div className="sidebar__logo-texts">
             <span className="sidebar__logo-text">Driving School</span>
-            <span className="sidebar__logo-sub">Quáº£n LÃ½ Luyá»‡n Thi</span>
+            <span className="sidebar__logo-sub">Quản Lý Luyện Thi</span>
           </div>
         )}
         <button className="sidebar__close" onClick={onToggle} aria-label="Toggle sidebar">
-          {collapsed ? <SidebarIcon id="menu" /> : 'Ã—'}
+          {collapsed ? <SidebarIcon id="menu" /> : '×'}
         </button>
       </div>
 
@@ -70,10 +70,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <button
           className="sidebar__logout"
           onClick={handleLogout}
-          title={collapsed ? 'ÄÄƒng Xuáº¥t' : undefined}
+          title={collapsed ? 'Đăng Xuất' : undefined}
         >
           <span className="sidebar__nav-icon"><SidebarIcon id="logout" /></span>
-          {!collapsed && 'ÄÄƒng Xuáº¥t'}
+          {!collapsed && 'Đăng Xuất'}
         </button>
       </div>
     </aside>

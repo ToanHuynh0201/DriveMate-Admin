@@ -33,22 +33,22 @@ export function QuestionTable({
 }: QuestionTableProps) {
 	const topicMap = Object.fromEntries(topics.map((t) => [t.id, t.name]));
 
-	if (loading) return <div className="q-empty">Äang táº£i...</div>;
-	if (!questions.length) return <div className="q-empty">KhÃ´ng tÃ¬m tháº¥y cÃ¢u há»i nÃ o.</div>;
+	if (loading) return <div className="q-empty">Đang tải...</div>;
+	if (!questions.length) return <div className="q-empty">Không tìm thấy câu hỏi nào.</div>;
 
 	return (
 		<div className="q-table-wrap">
 			<table className="q-table">
 				<thead>
 					<tr>
-						<th>Ná»™i Dung</th>
-						<th>Loáº¡i</th>
-						<th>Háº¡ng</th>
-						<th>Chá»§ Äá»</th>
-						<th>Äá»™ KhÃ³</th>
-						<th>Tráº¡ng thÃ¡i</th>
+						<th>Nội Dung</th>
+						<th>Loại</th>
+						<th>Hạng</th>
+						<th>Chủ Đề</th>
+						<th>Độ Khó</th>
+						<th>Trạng thái</th>
 						<th>Version</th>
-						<th>Thao TÃ¡c</th>
+						<th>Thao Tác</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -56,7 +56,7 @@ export function QuestionTable({
 						<tr key={q.id} className={q.isDeleted ? "q-table__row--deleted" : ""}>
 							<td className="q-table__content">
 								<span title={q.content}>{q.content}</span>
-								{q.isCritical && <span className="q-type-badge q-type-badge--critical">Liá»‡t</span>}
+								{q.isCritical && <span className="q-type-badge q-type-badge--critical">Liệt</span>}
 							</td>
 							<td>
 								<span className="q-type-badge">{QUESTION_TYPE_LABELS[q.type]}</span>
@@ -72,11 +72,11 @@ export function QuestionTable({
 							</td>
 							<td>
 								{q.isDeleted ? (
-									<span className="q-status q-status--deleted">ÄÃ£ xÃ³a</span>
+									<span className="q-status q-status--deleted">Đã xóa</span>
 								) : q.isActive ? (
-									<span className="q-status q-status--active">Hoáº¡t Ä‘á»™ng</span>
+									<span className="q-status q-status--active">Hoạt động</span>
 								) : (
-									<span className="q-status q-status--inactive">Táº¡m dá»«ng</span>
+									<span className="q-status q-status--inactive">Tạm dừng</span>
 								)}
 							</td>
 							<td>v{q.version}</td>

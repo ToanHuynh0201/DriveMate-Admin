@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { courseService } from '@/services';
+import { useAuthStore } from '@/store/authStore';
+import type { UserRole } from '@/types';
+import {
+  getCourseDetailErrorMessage,
+  getDeleteCourseErrorMessage,
+  getDeleteCourseSuccessMessage,
+  getUpdateCourseErrorMessage,
+  getUpdateCourseSuccessMessage,
+  SRS_MESSAGES,
+} from '@/utils/srsMessages';
 import { FileUploader } from '@/components/common/FileUploader';
 import type { CourseResponse } from '../../types/course.types';
 import { COURSE_STATUS_LABELS } from '../../types/course.types';
@@ -8,6 +18,10 @@ import { MaterialDownloadButton } from './components/MaterialDownloadButton';
 import './CourseDetailPage.css';
 
 type DetailTab = 'lessons' | 'materials';
+
+function canUseAdminCourses(role: UserRole | undefined) {
+  return role === 'ADMIN' || role === 'CENTER_MANAGER' || role === 'INSTRUCTOR';
+}
 
 function formatFee(fee: number) {
   return fee.toLocaleString('vi-VN') + 'đ';
@@ -37,9 +51,18 @@ interface MaterialForm {
 export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentUser = useAuthStore((state) => state.user);
+  const canManageCourses = canUseAdminCourses(currentUser?.role);
+  const canArchiveCourses =
+    currentUser?.role === 'ADMIN' || currentUser?.role === 'CENTER_MANAGER';
+  const scopedLicenseCategory = canManageCourses ? null : currentUser?.licenseTier ?? null;
+  const routeNotice = (location.state as { notice?: string } | null)?.notice ?? '';
   const [course, setCourse] = useState<CourseResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState(routeNotice);
+  const [actionError, setActionError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailTab>('lessons');
   const [activating, setActivating] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -56,28 +79,69 @@ export default function CourseDetailPage() {
   const [savingMaterial, setSavingMaterial] = useState(false);
 
   useEffect(() => {
+    if (!routeNotice) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, navigate, routeNotice]);
+
+  useEffect(() => {
     if (!courseId) return;
-    courseService.getById(courseId).then((res) => {
-      if (res.success) setCourse(res.data);
-      else setError(res.error);
+    let active = true;
+
+    const loadCourse = async () => {
+      if (!active) return;
+      setLoading(true);
+      setError('');
+      const res = canManageCourses
+        ? await courseService.getById(courseId)
+        : await courseService.getPublicById(courseId);
+
+      if (!active) return;
+      if (res.success) {
+        if (scopedLicenseCategory && res.data.licenseCategory !== scopedLicenseCategory) {
+          setCourse(null);
+          setError(SRS_MESSAGES.MSG23);
+        } else {
+          setCourse(res.data);
+        }
+      } else {
+        setCourse(null);
+        setError(getCourseDetailErrorMessage(res));
+      }
       setLoading(false);
-    });
-  }, [courseId]);
+    };
+
+    void Promise.resolve().then(loadCourse);
+    return () => {
+      active = false;
+    };
+  }, [canManageCourses, courseId, scopedLicenseCategory]);
 
   const handleActivate = async () => {
     if (!courseId) return;
     setActivating(true);
+    setNotice('');
+    setActionError('');
     const res = await courseService.activate(courseId);
-    if (res.success) setCourse(res.data);
+    if (res.success) {
+      setCourse(res.data);
+      setNotice(getUpdateCourseSuccessMessage());
+    } else {
+      setActionError(getUpdateCourseErrorMessage(res));
+    }
     setActivating(false);
   };
 
   const handleArchive = async () => {
     if (!courseId || !window.confirm('Lưu trữ khóa học này? Học sinh sẽ không thể đăng ký mới.')) return;
     setArchiving(true);
+    setNotice('');
+    setActionError('');
     const res = await courseService.archive(courseId);
     if (res.success) {
       setCourse((prev) => prev ? { ...prev, status: 'ARCHIVED' } : prev);
+      setNotice(getDeleteCourseSuccessMessage());
+    } else {
+      setActionError(getDeleteCourseErrorMessage(res));
     }
     setArchiving(false);
   };
@@ -186,7 +250,7 @@ export default function CourseDetailPage() {
           </div>
         </div>
         <div className="course-detail__header-actions">
-          {course.status === 'DRAFT' && (
+          {canArchiveCourses && course.status === 'DRAFT' && (
             <button
               className="course-detail__activate-btn"
               onClick={handleActivate}
@@ -195,7 +259,7 @@ export default function CourseDetailPage() {
               {activating ? 'Đang kích hoạt...' : 'Kích Hoạt'}
             </button>
           )}
-          {course.status === 'ACTIVE' && (
+          {canArchiveCourses && course.status === 'ACTIVE' && (
             <button
               className="course-detail__archive-btn"
               onClick={handleArchive}
@@ -204,7 +268,8 @@ export default function CourseDetailPage() {
               {archiving ? 'Đang lưu trữ...' : 'Lưu Trữ'}
             </button>
           )}
-          <button
+          {canManageCourses && (
+            <button
             className="course-detail__edit-btn"
             onClick={() => navigate(`/courses/${course.id}/edit`)}
           >
@@ -213,9 +278,13 @@ export default function CourseDetailPage() {
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
             Chỉnh Sửa
-          </button>
+            </button>
+          )}
         </div>
       </div>
+
+      {notice && <div className="course-detail__notice">{notice}</div>}
+      {actionError && <div className="course-detail__action-error">{actionError}</div>}
 
       <div className="course-detail__banner">
         <div className="course-detail__banner-left">
@@ -278,9 +347,11 @@ export default function CourseDetailPage() {
         <div className="course-detail__section">
           <div className="course-detail__section-header course-detail__section-header--with-action">
             <span>Danh Sách Bài Học</span>
-            <button className="course-detail__add-btn" onClick={openLessonModal}>
-              + Thêm bài học
-            </button>
+            {canManageCourses && (
+              <button className="course-detail__add-btn" onClick={openLessonModal}>
+                + Thêm bài học
+              </button>
+            )}
           </div>
           {sortedLessons.length === 0 ? (
             <div className="course-detail__empty">Chưa có bài học nào.</div>
@@ -297,18 +368,20 @@ export default function CourseDetailPage() {
                       </div>
                     )}
                   </div>
-                  <button
-                    className="course-detail__lesson-delete"
-                    onClick={() => handleDeleteLesson(lesson.id)}
-                    disabled={deletingLesson === lesson.id}
-                    title="Xóa bài học"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14H6L5 6" />
-                      <path d="M10 11v6M14 11v6M9 6V4h6v2" />
-                    </svg>
-                  </button>
+                  {canManageCourses && (
+                    <button
+                      className="course-detail__lesson-delete"
+                      onClick={() => handleDeleteLesson(lesson.id)}
+                      disabled={deletingLesson === lesson.id}
+                      title="Xóa bài học"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -320,9 +393,11 @@ export default function CourseDetailPage() {
         <div className="course-detail__section">
           <div className="course-detail__section-header course-detail__section-header--with-action">
             <span>Tài Liệu Học Tập</span>
-            <button className="course-detail__add-btn" onClick={openMaterialModal}>
-              + Thêm tài liệu
-            </button>
+            {canManageCourses && (
+              <button className="course-detail__add-btn" onClick={openMaterialModal}>
+                + Thêm tài liệu
+              </button>
+            )}
           </div>
           {course.materials.length === 0 ? (
             <div className="course-detail__empty">Chưa có tài liệu nào.</div>

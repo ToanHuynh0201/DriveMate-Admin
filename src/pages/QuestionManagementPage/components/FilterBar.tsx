@@ -24,33 +24,33 @@ export function FilterBar({ filters, topics, onChange }: FilterBarProps) {
 				<input
 					value={filters.keyword}
 					onChange={(e) => update({ keyword: e.target.value })}
-					placeholder="TÃ¬m kiáº¿m cÃ¢u há»i..."
+					placeholder="Tìm kiếm câu hỏi..."
 				/>
 			</div>
 
 			<select value={filters.licenseCategory} onChange={(e) => update({ licenseCategory: e.target.value as QuestionFilters["licenseCategory"] })}>
-				<option value="">Háº¡ng báº±ng</option>
+				<option value="">Hạng bằng</option>
 				{LICENSE_CATEGORY_OPTIONS.map((cls) => (
 					<option key={cls} value={cls}>{cls}</option>
 				))}
 			</select>
 
 			<select value={filters.type} onChange={(e) => update({ type: e.target.value as QuestionFilters["type"] })}>
-				<option value="">Loáº¡i cÃ¢u há»i</option>
+				<option value="">Loại câu hỏi</option>
 				{QUESTION_TYPE_OPTIONS.map((t) => (
 					<option key={t.value} value={t.value}>{t.label}</option>
 				))}
 			</select>
 
 			<select value={filters.topicId} onChange={(e) => update({ topicId: e.target.value })}>
-				<option value="">Chá»§ Ä‘á»</option>
+				<option value="">Chủ đề</option>
 				{topics.map((t) => (
 					<option key={t.id} value={t.id}>{t.name}</option>
 				))}
 			</select>
 
 			<select value={filters.difficulty} onChange={(e) => update({ difficulty: e.target.value as QuestionFilters["difficulty"] })}>
-				<option value="">Äá»™ khÃ³</option>
+				<option value="">Độ khó</option>
 				{DIFFICULTY_OPTIONS.map((d) => (
 					<option key={d.value} value={d.value}>{d.label}</option>
 				))}
@@ -62,7 +62,7 @@ export function FilterBar({ filters, topics, onChange }: FilterBarProps) {
 					checked={filters.includeDeleted}
 					onChange={(e) => update({ includeDeleted: e.target.checked })}
 				/>
-				<span>Hiá»‡n Ä‘Ã£ xÃ³a</span>
+				<span>Hiện đã xóa</span>
 			</label>
 		</div>
 	);

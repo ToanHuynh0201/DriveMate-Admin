@@ -17,11 +17,11 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
 	return (
 		<div className="student-filters">
 			<div className="student-filters__search">
-				<span>âŒ•</span>
+				<span>⌕</span>
 				<input
 					value={filters.search}
 					onChange={(e) => update({ search: e.target.value })}
-					placeholder="TÃ¬m kiáº¿m theo tÃªn, email, SÄT..."
+					placeholder="Tìm kiếm theo tên, email, SĐT..."
 				/>
 			</div>
 
@@ -32,7 +32,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
 						licenseTier: e.target.value as LicenseTier | "",
 					})
 				}>
-				<option value="">Háº¡ng báº±ng</option>
+				<option value="">Hạng bằng</option>
 				{STUDENT_LICENSE_TIERS.map((tier) => (
 					<option
 						key={tier}
@@ -49,14 +49,14 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
 						status: e.target.value as StudentFilters["status"],
 					})
 				}>
-				<option value="">Tráº¡ng thÃ¡i</option>
+				<option value="">Trạng thái</option>
 				{STUDENT_STATUS_OPTIONS.map((item) => (
 					<option
 						key={item.value}
 						value={item.value}
 						disabled={item.value === "warning" || item.value === "completed"}>
 						{item.value === "warning" || item.value === "completed"
-							? `${item.label} (chÆ°a há»— trá»£)`
+							? `${item.label} (chưa hỗ trợ)`
 							: item.label}
 					</option>
 				))}
@@ -67,7 +67,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
 				onClick={() =>
 					onChange({ search: "", licenseTier: "", status: "" })
 				}>
-				âŠ˜ Lá»c
+				⊘ Lọc
 			</button>
 		</div>
 	);

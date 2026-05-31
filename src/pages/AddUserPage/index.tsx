@@ -117,7 +117,7 @@ export default function AddUserPage() {
 
     if (!created.success) {
       setLoading(false);
-      showToast(getCreateAccountErrorMessage(created, "user"), "error");
+      showToast(getCreateAccountErrorMessage(created), "error");
       return;
     }
 
@@ -155,7 +155,7 @@ export default function AddUserPage() {
       if (!updateResult.success) {
         setLoading(false);
         showToast(
-          `User account created, but profile update failed: ${getUpdateAccountErrorMessage(updateResult, "user")}`,
+          `User account created, but profile update failed: ${getUpdateAccountErrorMessage(updateResult)}`,
           "error",
         );
         return;
@@ -178,7 +178,7 @@ export default function AddUserPage() {
     }
 
     setLoading(false);
-    showToast(getCreateAccountSuccessMessage("user"), "success");
+    showToast(getCreateAccountSuccessMessage(), "success");
     setTimeout(() => navigate("/users"), 1500);
   };
 

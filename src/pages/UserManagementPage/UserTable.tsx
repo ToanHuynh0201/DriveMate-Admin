@@ -23,7 +23,7 @@ export default function UserTable({
   if (users.length === 0) {
     return (
       <div className="user-table__empty">
-        <p>KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng nÃ o.</p>
+        <p>Không tìm thấy người dùng nào.</p>
       </div>
     );
   }
@@ -33,12 +33,12 @@ export default function UserTable({
       <table className="user-table">
         <thead>
           <tr>
-            <th>Há» TÃªn</th>
+            <th>Họ Tên</th>
             <th>Email</th>
-            <th>Vai TrÃ²</th>
-            <th>Tráº¡ng ThÃ¡i</th>
-            <th>NgÃ y Táº¡o</th>
-            <th>Thao TÃ¡c</th>
+            <th>Vai Trò</th>
+            <th>Trạng Thái</th>
+            <th>Ngày Tạo</th>
+            <th>Thao Tác</th>
           </tr>
         </thead>
         <tbody>
@@ -73,31 +73,31 @@ export default function UserTable({
                           ? "action-btn--deactivate"
                           : "action-btn--activate"
                       }`}
-                      title={user.isActive ? "KhÃ³a Ä‘Äƒng nháº­p" : "Má»Ÿ khÃ³a"}
+                      title={user.isActive ? "Khóa đăng nhập" : "Mở khóa"}
                       disabled={disabled}
                       onClick={() => onToggleStatus(user)}>
-                      {busy ? "..." : user.isActive ? "â¸" : "â–¶"}
+                      {busy ? "..." : user.isActive ? "⏸" : "▶"}
                     </button>
                     <button
                       className="action-btn action-btn--edit"
-                      title="Sá»­a thÃ´ng tin"
+                      title="Sửa thông tin"
                       disabled={disabled}
                       onClick={() => onEdit(user)}>
-                      âœŽ
+                      ✎
                     </button>
                     <button
                       className="action-btn action-btn--role"
-                      title="Äá»•i vai trÃ²"
+                      title="Đổi vai trò"
                       disabled={disabled}
                       onClick={() => onChangeRole(user)}>
-                      â—†
+                      ◆
                     </button>
                     <button
                       className="action-btn action-btn--delete"
-                      title="XÃ³a tÃ i khoáº£n"
+                      title="Xóa tài khoản"
                       disabled={disabled}
                       onClick={() => onDelete(user)}>
-                      Ã—
+                      ×
                     </button>
                   </div>
                 </td>

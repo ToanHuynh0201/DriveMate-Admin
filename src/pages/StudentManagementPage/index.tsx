@@ -90,35 +90,35 @@ export default function StudentManagementPage() {
 		<div className="student-management">
 			<div className="student-management__header">
 				<div>
-					<h1>Quáº£n LÃ½ Há»c ViÃªn</h1>
-					<p>Theo dÃµi tiáº¿n Ä‘á»™ vÃ  quáº£n lÃ½ thÃ´ng tin há»c viÃªn</p>
+					<h1>Quản Lý Học Viên</h1>
+					<p>Theo dõi tiến độ và quản lý thông tin học viên</p>
 				</div>
 				<button
 					className="student-management__add"
 					onClick={() => navigate("/students/new")}>
-					+ ThÃªm Há»c ViÃªn
+					+ Thêm Học Viên
 				</button>
 			</div>
 
 			<div className="student-summary-grid">
 				<SummaryCard
-					title="Tá»•ng há»c viÃªn"
+					title="Tổng học viên"
 					value={summary.total.toLocaleString("vi-VN")}
 					accent="#f3f4f6"
 				/>
 				<SummaryCard
-					title="Äang há»c (trang)"
+					title="Đang học (trang)"
 					value={summary.studying.toLocaleString("vi-VN")}
 					accent="#4ade80"
 				/>
 				<SummaryCard
-					title="ÄÃ£ khÃ³a (trang)"
+					title="Đã khóa (trang)"
 					value={summary.locked.toLocaleString("vi-VN")}
 					accent="#ef4444"
 				/>
 				<SummaryCard
-					title="HoÃ n thÃ nh"
-					value="â€”"
+					title="Hoàn thành"
+					value="—"
 					accent="#94a3b8"
 				/>
 			</div>
@@ -128,9 +128,9 @@ export default function StudentManagementPage() {
 				onChange={handleFilters}
 			/>
 
-			{studentsQuery.loading && <div className="student-empty">Äang táº£i...</div>}
+			{studentsQuery.loading && <div className="student-empty">Đang tải...</div>}
 			{studentsQuery.error && !studentsQuery.loading && (
-				<div className="student-empty">Lá»—i: {studentsQuery.error}</div>
+				<div className="student-empty">Lỗi: {studentsQuery.error}</div>
 			)}
 			{!studentsQuery.loading && !studentsQuery.error && (
 				<StudentTable

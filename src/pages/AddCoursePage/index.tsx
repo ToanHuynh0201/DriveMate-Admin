@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { courseService, identityService } from '@/services';
 import type { IdentityUser } from '@/types/identity.types';
+import {
+  getCourseDetailErrorMessage,
+  getCreateCourseErrorMessage,
+  getCreateCourseSuccessMessage,
+  getUpdateCourseErrorMessage,
+  getUpdateCourseSuccessMessage,
+  SRS_MESSAGES,
+} from '@/utils/srsMessages';
 import type { CourseFormData, LicenseCategory } from '../../types/course.types';
 import { COURSE_LICENSE_CATEGORIES } from '../../types/course.types';
 import './AddCoursePage.css';
@@ -59,7 +67,7 @@ export default function AddCoursePage() {
           },
         });
       } else {
-        setSubmitError(res.error);
+        setSubmitError(getCourseDetailErrorMessage(res));
       }
     });
   }, [isEdit, courseId]);
@@ -76,8 +84,8 @@ export default function AddCoursePage() {
 
   const validate = (): boolean => {
     const errs: typeof errors = {};
-    if (!form.title.trim()) errs.title = 'Vui lòng nhập tên khóa học';
-    if (!form.licenseCategory) errs.licenseCategory = 'Vui lòng chọn hạng bằng';
+    if (!form.title.trim()) errs.title = SRS_MESSAGES.MSG25;
+    if (!form.licenseCategory) errs.licenseCategory = SRS_MESSAGES.MSG25;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -119,9 +127,19 @@ export default function AddCoursePage() {
     setLoading(false);
 
     if (result.success) {
-      navigate(isEdit ? `/courses/${courseId}` : `/courses/${result.data.id}`);
+      navigate(isEdit && courseId ? `/courses/${courseId}` : `/courses/${result.data.id}`, {
+        state: {
+          notice: isEdit
+            ? getUpdateCourseSuccessMessage()
+            : getCreateCourseSuccessMessage(),
+        },
+      });
     } else {
-      setSubmitError(result.error);
+      setSubmitError(
+        isEdit
+          ? getUpdateCourseErrorMessage(result)
+          : getCreateCourseErrorMessage(result),
+      );
     }
   };
 

@@ -23,6 +23,26 @@
   cursor: pointer;
 }
 
+.course-detail__notice,
+.course-detail__action-error {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.course-detail__notice {
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  color: #4ade80;
+}
+
+.course-detail__action-error {
+  background: rgba(255, 90, 95, 0.12);
+  border: 1px solid rgba(255, 90, 95, 0.3);
+  color: #ff5a5f;
+}
+
 /* Header */
 .course-detail__header {
   display: flex;

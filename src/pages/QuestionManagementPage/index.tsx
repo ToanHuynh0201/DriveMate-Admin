@@ -107,7 +107,7 @@ export default function QuestionManagementPage() {
 
   const handleTopicSave = async () => {
     if (!topicForm.name.trim()) {
-      setTopicModalError('TÃªn topic khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.');
+      setTopicModalError('Tên topic không được để trống.');
       return;
     }
     setTopicModalLoading(true);
@@ -135,7 +135,7 @@ export default function QuestionManagementPage() {
   };
 
   const handleDelete = async (id: string, version: number) => {
-    if (!window.confirm('XÃ¡c nháº­n xÃ³a cÃ¢u há»i nÃ y?')) return;
+    if (!window.confirm('Xác nhận xóa câu hỏi này?')) return;
     const result = await questionService.delete(id, version);
     if (result.success) {
       questionsQuery.refetch();
@@ -155,23 +155,23 @@ export default function QuestionManagementPage() {
     <div className="q-management">
       <div className="q-management__header">
         <div>
-          <h1>NgÃ¢n HÃ ng CÃ¢u Há»i</h1>
-          <p>Quáº£n lÃ½ cÃ¢u há»i thi lÃ½ thuyáº¿t vÃ  lá»‹ch sá»­ chá»‰nh sá»­a</p>
+          <h1>Ngân Hàng Câu Hỏi</h1>
+          <p>Quản lý câu hỏi thi lý thuyết và lịch sử chỉnh sửa</p>
         </div>
         <div className="q-management__header-actions">
           <button className="q-topic-btn" onClick={() => { handleTopicFormReset(); setTopicModalOpen(true); }}>
-            ðŸ“š Quáº£n LÃ½ Topic
+            📚 Quản Lý Topic
           </button>
           <button className="q-management__add" onClick={() => navigate('/questions/new')}>
-            + ThÃªm CÃ¢u Há»i
+            + Thêm Câu Hỏi
           </button>
         </div>
       </div>
 
       <div className="q-summary-grid">
-        <SummaryCard title="Tá»•ng cÃ¢u há»i" value={total} />
-        <SummaryCard title="Äang dÃ¹ng" value={totalActive} accent="#4ade80" />
-        <SummaryCard title="CÃ¢u liá»‡t" value={totalCritical} accent="#ff5a5f" />
+        <SummaryCard title="Tổng câu hỏi" value={total} />
+        <SummaryCard title="Đang dùng" value={totalActive} accent="#4ade80" />
+        <SummaryCard title="Câu liệt" value={totalCritical} accent="#ff5a5f" />
       </div>
 
       {questionsQuery.error && <div className="q-error">{questionsQuery.error}</div>}
@@ -191,7 +191,7 @@ export default function QuestionManagementPage() {
         totalPages={totalPages}
         totalItems={total}
         pageSize={DEFAULT_PAGE_SIZE}
-        label="cÃ¢u há»i"
+        label="câu hỏi"
         onChange={setCurrentPage}
       />
 
@@ -199,29 +199,29 @@ export default function QuestionManagementPage() {
         <div className="q-topic-modal">
           <div className="q-topic-modal__box">
             <div className="q-topic-modal__header">
-              <span>{editingTopicId ? 'Sá»­a Topic' : 'Quáº£n LÃ½ Topic'}</span>
-              <button className="q-topic-modal__close" onClick={() => { setTopicModalOpen(false); handleTopicFormReset(); }}>Ã—</button>
+              <span>{editingTopicId ? 'Sửa Topic' : 'Quản Lý Topic'}</span>
+              <button className="q-topic-modal__close" onClick={() => { setTopicModalOpen(false); handleTopicFormReset(); }}>×</button>
             </div>
 
             <div className="q-topic-modal__form">
               <p className="q-topic-modal__form-title">
-                {editingTopicId ? 'Cáº­p nháº­t topic' : 'ThÃªm topic má»›i'}
+                {editingTopicId ? 'Cập nhật topic' : 'Thêm topic mới'}
               </p>
               {topicModalError && <div className="q-topic-modal__error">{topicModalError}</div>}
               <div className="q-topic-modal__field">
-                <label>TÃªn topic *</label>
+                <label>Tên topic *</label>
                 <input
                   value={topicForm.name}
                   onChange={(e) => setTopicForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="VD: Biá»ƒn bÃ¡o giao thÃ´ng"
+                  placeholder="VD: BiỒn báo giao thông"
                 />
               </div>
               <div className="q-topic-modal__field">
-                <label>MÃ´ táº£</label>
+                <label>Mô tả</label>
                 <input
                   value={topicForm.description}
                   onChange={(e) => setTopicForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="MÃ´ táº£ ngáº¯n (tÃ¹y chá»n)"
+                  placeholder="Mô tả ngắn (tùy chọn)"
                 />
               </div>
               <div className="q-topic-modal__field">
@@ -229,7 +229,7 @@ export default function QuestionManagementPage() {
                 <select
                   value={topicForm.parentId}
                   onChange={(e) => setTopicForm((f) => ({ ...f, parentId: e.target.value }))}>
-                  <option value="">KhÃ´ng cÃ³</option>
+                  <option value="">Không có</option>
                   {topics
                     .filter((t) => t.id !== editingTopicId)
                     .map((t) => (
@@ -242,20 +242,20 @@ export default function QuestionManagementPage() {
                   className="q-topic-modal__btn q-topic-modal__btn--primary"
                   onClick={handleTopicSave}
                   disabled={topicModalLoading}>
-                  {topicModalLoading ? 'Äang lÆ°u...' : editingTopicId ? 'Cáº­p nháº­t' : 'ThÃªm'}
+                  {topicModalLoading ? 'Đang lưu...' : editingTopicId ? 'Cập nhật' : 'Thêm'}
                 </button>
                 {editingTopicId && (
                   <button className="q-topic-modal__btn" onClick={handleTopicFormReset} disabled={topicModalLoading}>
-                    Há»§y sá»­a
+                    Hủy sửa
                   </button>
                 )}
               </div>
             </div>
 
             <div className="q-topic-modal__list">
-              <p className="q-topic-modal__list-title">Danh sÃ¡ch topic ({topics.length})</p>
+              <p className="q-topic-modal__list-title">Danh sách topic ({topics.length})</p>
               {topics.length === 0 ? (
-                <p className="q-topic-modal__empty">ChÆ°a cÃ³ topic nÃ o.</p>
+                <p className="q-topic-modal__empty">Chưa có topic nào.</p>
               ) : (
                 topics.map((t) => (
                   <div
@@ -271,7 +271,7 @@ export default function QuestionManagementPage() {
                       className="q-topic-modal__edit-btn"
                       onClick={() => handleOpenEditTopic(t)}
                       disabled={topicModalLoading}>
-                      Sá»­a
+                      Sửa
                     </button>
                   </div>
                 ))

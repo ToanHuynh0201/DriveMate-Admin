@@ -128,7 +128,7 @@ export default function AddStudentPage() {
 
 		if (!created.success) {
 			setLoading(false);
-			showToast(getCreateAccountErrorMessage(created, "student"), "error");
+			showToast(getCreateAccountErrorMessage(created), "error");
 			return;
 		}
 
@@ -167,7 +167,7 @@ export default function AddStudentPage() {
 			if (!updateResult.success) {
 				setLoading(false);
 				showToast(
-					`Student account created, but profile update failed: ${getUpdateAccountErrorMessage(updateResult, "student")}`,
+					`Student account created, but profile update failed: ${getUpdateAccountErrorMessage(updateResult)}`,
 					"error",
 				);
 				return;
@@ -191,7 +191,7 @@ export default function AddStudentPage() {
 		}
 
 		setLoading(false);
-		showToast(getCreateAccountSuccessMessage("student"), "success");
+		showToast(getCreateAccountSuccessMessage(), "success");
 		setTimeout(() => navigate("/students"), 1500);
 	};
 

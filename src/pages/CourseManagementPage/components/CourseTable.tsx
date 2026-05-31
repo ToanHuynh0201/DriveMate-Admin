@@ -8,18 +8,26 @@ const STATUS_PILL: Record<CourseStatus, string> = {
 };
 
 function formatFee(fee: number) {
-	return fee.toLocaleString("vi-VN") + "Ä‘";
+	return fee.toLocaleString("vi-VN") + "đ";
 }
 
 interface CourseTableProps {
 	courses: CourseResponse[];
 	onView: (id: string) => void;
 	onEdit: (id: string) => void;
+	canEdit?: boolean;
+	emptyMessage?: string;
 }
 
-export function CourseTable({ courses, onView, onEdit }: CourseTableProps) {
+export function CourseTable({
+	courses,
+	onView,
+	onEdit,
+	canEdit = true,
+	emptyMessage = "Không tìm thấy khóa học nào.",
+}: CourseTableProps) {
 	if (!courses.length) {
-		return <div className="course-empty">KhÃ´ng tÃ¬m tháº¥y khÃ³a há»c nÃ o.</div>;
+		return <div className="course-empty">{emptyMessage}</div>;
 	}
 
 	return (
@@ -28,13 +36,13 @@ export function CourseTable({ courses, onView, onEdit }: CourseTableProps) {
 				<thead>
 					<tr>
 						<th>#</th>
-						<th>TÃªn khÃ³a há»c</th>
-						<th>Háº¡ng báº±ng</th>
-						<th>Thá»i lÆ°á»£ng</th>
-						<th>BÃ i há»c</th>
-						<th>Há»c phÃ­</th>
-						<th>Tráº¡ng thÃ¡i</th>
-						<th>THAO TÃC</th>
+						<th>Tên khóa học</th>
+						<th>Hạng bằng</th>
+						<th>Thời lượng</th>
+						<th>Bài học</th>
+						<th>Học phí</th>
+						<th>Trạng thái</th>
+						<th>Thao tác</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -45,7 +53,7 @@ export function CourseTable({ courses, onView, onEdit }: CourseTableProps) {
 							<td>
 								<span className="course-badge">{course.licenseCategory}</span>
 							</td>
-							<td>{course.duration ?? "â€”"}</td>
+							<td>{course.duration ?? "—"}</td>
 							<td>
 								<span className="course-table__icon-cell">
 									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -70,13 +78,15 @@ export function CourseTable({ courses, onView, onEdit }: CourseTableProps) {
 										</svg>
 										Xem
 									</button>
-									<button className="course-btn-edit" onClick={() => onEdit(course.id)}>
-										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-											<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-											<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-										</svg>
-										Sá»­a
-									</button>
+									{canEdit && (
+										<button className="course-btn-edit" onClick={() => onEdit(course.id)}>
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+												<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+											</svg>
+											Sửa
+										</button>
+									)}
 								</div>
 							</td>
 						</tr>
